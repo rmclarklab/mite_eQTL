@@ -1,0 +1,9 @@
+scaffold_new	scaffold_old	direction	start	end
+scaffold_1.1	scaffold_1	f	0	4745098
+scaffold_1.2	scaffold_1	f	4745099	-
+scaffold_2.1	scaffold_2	f	0	3099738
+scaffold_2.2	scaffold_2	f	3099739	-
+scaffold_4.1	scaffold_4	f	0	1509718
+scaffold_4.2	scaffold_4	f	1509719	-
+scaffold_8.1	scaffold_8	f	0	767977
+scaffold_8.2	scaffold_8	f	767978	-
