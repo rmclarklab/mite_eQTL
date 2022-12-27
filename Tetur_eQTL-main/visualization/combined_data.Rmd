@@ -1,0 +1,269 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+suppressMessages(library("ggplot2"))
+suppressMessages(library("VennDiagram"))
+suppressMessages(library("dplyr"))
+suppressMessages(library("GenomicRanges"))
+suppressMessages(library("ggbio"))
+suppressMessages(library("ggnewscale"))
+suppressMessages(library("ggrepel"))
+```
+
+Genotype ratio and genes with trans-regulation in 200 Kb window (supplementary Fig)
+```{r}
+geno <- read.table("1.recombination/output/genotype_ratio_50k.txt", sep = "\t", header = T)
+trans_n <- read.table("2.eQTL/output/trans_eQTL_200k_freq.txt", sep = "\t", header = T)
+trans_freq_p <- ggplot() + theme(panel.background = element_rect(color = "grey", fill = "transparent"), legend.position = "none", panel.grid = element_blank(), axis.text = element_blank()) + geom_hline(yintercept = c(100, 250), linetype = "dashed", color = "grey", size = 0.2) + facet_wrap(~chromosome, nrow = 1, scales = "fixed") + geom_histogram(data = trans_n, aes(x = bin_start, y = total), fill = "grey60", stat = "identity") + geom_histogram(data = trans_n, aes(x = bin_start, y = nplus), fill = "black", stat = "identity") + theme(panel.spacing = unit(0, "cm")) + xlab("eQTL position (Mb)") + scale_x_continuous(breaks = seq(0, max(trans_n$bin_end), 5000000))
+#
+geno$heterozygous_ratio <- geno$heterozygous/(geno$homozygous + geno$heterozygous)
+ratio_p <- trans_freq_p + geom_line(data = geno, aes(x = position, y = heterozygous_ratio*500), color = "#FA815F", alpha = 0.8) + ylab("heterozygous genotype ratio & trans-regulated gene number") + geom_hline(yintercept = 0.5, size = 0.5, linetype = "dashed", color  = "grey", alpha = 0.3)
+ggsave(plot = ratio_p, filename = "plot/genotype_ratio_hotspot_bar.pdf", width = 12, height = 5.8)
+```
+
+###################### 
+
+combine all DEGs from NIL (A/C) and RNAi (bean/tomato) (supplementary table)
+```{r}
+A_raw <- read.table("3.NILs/output/A18_EvsA18_H_0.01.txt", sep = "\t", header = T)
+C_raw <- read.table("3.NILs/output/C31_EvsC31_H_0.01.txt", sep = "\t", header = T)
+bean_raw <- read.table("4.RNAi/output/NHRvsGFP_0.01.txt", sep = "\t", header = T)
+tomato_raw <- read.table("4.RNAi/output/TNvsTB_0.01.txt", sep = "\t", header = T)
+colnames(A_raw) <- paste("ANIL", colnames(A_raw), sep = "_")
+colnames(C_raw) <- paste("CNIL", colnames(C_raw), sep = "_")
+colnames(bean_raw) <- paste("RNAi_bean", colnames(bean_raw), sep = "_")
+colnames(tomato_raw) <- paste("RNAi_tomato", colnames(tomato_raw), sep = "_")
+NIL_raw <- merge(A_raw, C_raw, by = 0, all = T)
+write.table(NIL_raw, file = "3.NILs/output/ANIL_CNIL_EvsH_0.01.txt", sep = "\t", quote = F, row.names = F)
+RNAi_raw <- merge(bean_raw, tomato_raw, by = 0, all = T)
+write.table(RNAi_raw, file = "4.RNAi/output/bean_tomato_NHRvsGFP_0.01.txt", sep = "\t", quote = F, row.names = F)
+all_DEG <- merge(NIL_raw, RNAi_raw, by = "Row.names", all = T)
+write.table(all_DEG, file = "data_important/NIL_RNAi_DEG_raw.txt", sep = "\t", quote = F, row.names = F)
+```
+
+boxplot for target gene expression in accordance to its eQTLs genotypes (function)
+```{r}
+gene_eQTL <- function(gdf, edf, gene, bin, color = "purple") {
+  gsub <- gdf[bin, ]
+  esub <- edf[gene, ]
+  ge_sub <- t(rbind(gsub, esub)) %>% as.data.frame()
+  colnames(ge_sub) <- c(paste0("bin", seq(1, length(bin))), "gene")
+  if (length(bin) > 1) {
+    ge_sub$genotype <- apply(ge_sub[, paste0("bin", seq(1, length(bin)))], 1, function(x) paste(x, collapse = "_"))
+  } else {
+    ge_sub$genotype <- ge_sub[, paste0("bin", seq(1, length(bin)))]
+  }
+  ge_num <- ge_sub %>% group_by(genotype) %>% summarise(num=n()) %>% as.data.frame()
+  # outlier.size = 0.4
+  # write.table(ge_sub, file = paste0(gene, bin, ".txt"), sep = "\t", row.names = F, quote = F)
+  p <- ggplot(data = ge_sub, aes(x = as.factor(genotype), y = gene)) + geom_boxplot(notch = T, size = 0.2, outlier.shape = NA, fill = "#F16823", alpha = 0.3, color = "#F16823") + geom_jitter(alpha = 0.6, size = 0.4, shape = 16, width = 0.2, color = "black") + ggtitle(paste0(gene,"-",bin, collapse = ",")) + theme(legend.position = "none") + xlab("") + ylab("normalized expression") + theme(panel.background = element_rect(fill = "transparent", color = "grey"), panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + geom_text(data = ge_num, aes(x = as.factor(genotype), y = max(ge_sub$gene), label = num))
+  return(p)
+}
+```
+
+expression data and genotype data
+```{r}
+expression <- read.table("data_important/htseq_star_new_v2_DESeq.txt", sep = "\t", header = T, row.names = 1)
+genotype <- read.table("data_important/eQTL_genotype_all.txt", sep = "\t", header = T, row.names = 1)
+# check genotype and expression samples match
+# identical(colnames(expression), colnames(genotype))
+```
+
+```{r}
+CYP392A11 <- "tetur03g00970"
+CYP392A12 <- "tetur03g00830"
+CYP392A16 <- "tetur06g04520"
+CYP392D2 <- "tetur03g04990"
+CYP392D8 <- "tetur03g05070"
+DOG11 <- "tetur13g04550"
+UGT204B1 <- "tetur02g09830"
+CPR <- "tetur18g03390"
+UGT201B12 <- "tetur07g06420"
+ABCC26 <- "tetur09g04620"
+CYP392E11 <- "tetur27g00220"
+```
+
+```{r}
+CYP392E11_p <- gene_eQTL(genotype, expression, gene = CYP392E11, bin = c("chromosome_1:24061589-24098240", "chromosome_1:12462679-12491973"))
+pdf("plot/CYP392E11.pdf", width = 3, height = 3.6)
+print(CYP392E11_p)
+dev.off()
+```
+
+```{r}
+CPR_p <- gene_eQTL(genotype, expression, gene = CPR, bin = c("chromosome_2:5188570-5203881", "chromosome_1:12491974-12522696"))
+pdf("plot/CPR.pdf", width = 3, height = 3.6)
+print(CPR_p)
+dev.off()
+```
+
+```{r}
+UGT204B1_p <- gene_eQTL(genotype, expression ,gene = UGT204B1, bin = c("chromosome_3:5609529-5650021", "chromosome_1:12491974-12522696"))
+pdf("plot/UGT204.pdf", width = 3, height = 3.6)
+print(UGT204B1_p)
+dev.off()
+```
+
+```{r}
+ABCC26_p <- gene_eQTL(genotype, expression ,gene = ABCC26, bin = c("chromosome_3:16795665-16918141", "chromosome_1:12462679-12491973", "chromosome_1:1816907-1826012"))
+pdf("plot/ABCC226.pdf", width = 6, height = 3.6)
+print(ABCC26_p)
+dev.off()
+```
+
+```{r}
+UGT201B12_p <- gene_eQTL(genotype, expression ,gene = UGT201B12, bin = c("chromosome_1:29622586-29696536", "chromosome_1:12547157-12584899", "chromosome_2:2931923-2966282"))
+pdf("plot/UGT201B12.pdf", width = 4, height = 3.6)
+print(UGT201B12_p)
+dev.off()
+```
+
+```{r}
+CYP392A12_p <- gene_eQTL(genotype, expression, gene = CYP392A12, bin = c("chromosome_1:20863487-20951636", "chromosome_1:12426633-12462678"))
+# write.table(CYP392A12_p, file = "CYP392A12.txt", sep = "\t", quote = F, row.names = T)
+# "chromosome_3:14148742-14215983"
+pdf("plot/CYP392A12_cis_HS1.pdf", width = 3.8, height = 5.5)
+print(CYP392A12_p)
+dev.off()
+```
+
+hotspot1, A-NIL, C-NIL 
+```{r}
+hs1 <- read.table("data_important/hotspot1_expression.txt", sep = "\t", header = T)
+ANIL <- read.table("data_important/A_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+CNIL <- read.table("data_important/C_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+# 
+bean <- read.table("data_important/bean_sig.txt", sep = "\t", header = T)
+tomato <- read.table("data_important/tomato_sig.txt", sep = "\t", header = T)
+# 
+hs1$HS1 <- ifelse(hs1$beta > 0, "up", "down")
+hs1_j <- hs1[, c("gene", "HS1")]
+ANIL$ANIL <- ifelse(ANIL$log2FoldChange, "up", "down")
+ANIL_j <- ANIL[, c("gene", "ANIL")]
+CNIL$CNIL <- ifelse(CNIL$log2FoldChange, "up", "down")
+CNIL_j <- CNIL[, c("gene", "CNIL")]
+bean$RNAi_bean <- ifelse(bean$log2FoldChange > 0, "up", "down")
+bean_j <- bean[, c("RNAi_bean"), drop = F]
+tomato$RNAi_tomato <- ifelse(tomato$log2FoldChange > 0, "up", "down")
+tomato_j <- tomato[, c("RNAi_tomato"), drop = F]
+# 
+hs1a <- merge(hs1_j, ANIL_j, by = "gene", all = T)
+hs1ac <- merge(hs1a, CNIL_j, by = "gene", all = T)
+hs1acb <- merge(hs1ac, bean_j, by.x = "gene", by.y = 0, all = T)
+hs1acbt <- merge(hs1acb, tomato_j, by.x = "gene", by.y = 0, all = T)
+# 
+write.table(hs1acbt, file = "HS1_ACNIL_RNAi.txt", sep = "\t", quote = F, row.names = F)
+```
+
+add detox and description to the up-table
+```{r}
+deg <- read.table("HS1_ACNIL_RNAi.txt", sep = "\t", header = T)
+detox <- read.table("data_important/detox_RC.txt", sep = "\t", header = T)
+description <- read.table("data_important/gene_loc_2022_description.txt", sep = "\t", header = T, quote = "")
+detox$label <- paste0(detox$family, "(", detox$name, ")")
+description <- description[, c("gene", "chromosome", "start", "end", "description")]
+# 
+deg_1 <- merge(deg, detox[, c("gene", "label")], by = "gene", all.x = T)
+deg_2 <- merge(deg_1, description, by = "gene", all.x = T)
+write.table(deg_2, file = "HS1_ACNIL_RNAi_label.txt", sep = "\t", row.names = F, quote = F)
+```
+
+boxplot of GSTm07 genotype and expression pair
+```{r}
+GST07_p <- gene_eQTL(genotype, expression, gene = "tetur05g05240", bin = c("chromosome_2:26235063-26299436", "chromosome_1:12522697-12547156"), color = "#46BEADFF")
+pdf("plot/GSTm07_box.pdf", width = 2.8, height = 3.6)
+print(GST07_p)
+dev.off()
+```
+
+boxplot of cce58 genotype and expression pair
+```{r}
+CCE58_p <- gene_eQTL(genotype, expression, gene = "tetur29g00930", bin = c("chromosome_2:22274638-22298459", "chromosome_1:12462679-12491973"), color = "#46BEADFF")
+pdf("plot/CCE58_box.pdf", width = 2.8, height = 3.6)
+print(CCE58_p)
+dev.off()
+```
+
+boxplot of lipocalins genotype and expression pair
+```{r}
+lipo_p <- gene_eQTL(genotype, expression, gene = "tetur01g05740", bin = c("chromosome_2:14676520-14800198", "chromosome_1:12522697-12547156", "chromosome_2:5001188-5030400"))
+pdf("plot/lipo_box.pdf", width = 3.5, height = 3.5)
+print(lipo_p)
+dev.off()
+```
+
+examine expression change in response to bin genotype 
+```{r}
+expression2bin <- function(trans, chr, start, end, gene_loc, candidate_prefix) {
+  trans_range <- trans[trans$bin_chromosome == chr & ((trans$bin_start >= start & trans$bin_start <= end) | (trans$bin_end >= start & trans$bin_end <= end)), ]
+  gene_num <- trans_range %>% group_by(SNP) %>% summarise(n = n()) %>% as.data.frame()
+  gene_max <- gene_num[gene_num$n == max(gene_num$n), ]
+  range_look <- unique(trans_range[trans_range$SNP %in% gene_max$SNP, c("bin_start", "bin_end")])
+  range_start <- min(range_look$bin_start)
+  range_end <- max(range_look$bin_end)
+  ###
+  candidate_gene <- gene_loc[gene_loc$chromosome == chr & ((gene_loc$start >= range_start & gene_loc$start <= range_end) | (gene_loc$end >= range_start & gene_loc$end <= range_end)), ]
+  print(gene_max$SNP)
+  write.table(candidate_gene, file = paste0(candidate_prefix, ".txt"), sep = "\t", quote = F, row.names = F)
+  trans_range$bin_jitter <- 0
+  for (r in rownames(trans_range)) {
+    bstart <- trans_range[r, "bin_start"]
+    bend <- trans_range[r, "bin_end"]
+    sample_prop <- sample(seq(10, 40), 1)
+    pos_rand <- (bend - bstart)/50*sample_prop + bstart
+    trans_range[r, "bin_jitter"] <- pos_rand
+  }
+  trans_range_shade <- unique(trans_range[, c("bin_chromosome", "bin_start", "bin_end", "bin_position")])
+  trans_range_shade <- trans_range_shade[order(trans_range_shade$bin_start), ]
+  trans_range_shade$numb <- ifelse(seq(1,nrow(trans_range_shade)) %% 2 == 0, "e", "o")
+  # add shade of bin
+  p <- ggplot() + geom_rect(data = trans_range_shade, aes(xmin = bin_start, xmax = bin_end, ymin = -Inf, ymax = Inf, fill = numb), alpha = 0.28) + scale_fill_manual(values = c("o" =  "grey", "e" = "transparent")) + geom_hline(yintercept = c(-1, -2, 0, 1, 2, 3, 4,5,6), linetype = "dashed", size = 0.3, color = "grey", alpha = 0.7) + scale_x_continuous(position = "top", breaks = c(trans_range_shade$bin_position)) + theme(panel.background = element_rect(color = "grey", fill = "transparent"), panel.grid = element_blank(), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) 
+  # add gene dot 
+  p <- p + new_scale_color() + geom_point(data = trans_range, aes(x = bin_jitter, y = log2(exp1/exp0), shape = gene_label), alpha = 0.8, size = 2, stroke = 0.4, color = "#E85362") + scale_shape_manual(values = c("detox" = 16, "non-detox" = 1)) 
+  pdf(paste0(candidate_prefix, ".pdf"), width = 8, height = 5)
+  print(p)
+  dev.off()
+  # ggsave(plot = p, filename = paste0(candidate_prefix, ".pdf"), width = 8, height = 5)
+}
+expression2bin(trans, "chromosome_1", 12.4e+6, 12.6e+6, gene_loc, "chr1_12.4_12.6_Mb_2")
+```
+
+```{r}
+eQTL <- read.table("data_important/eQTL_FDR0.01_rf0.4_LOD3_chr_peak_CisTrans_expression.txt", sep = "\t", header = T)
+trans <- eQTL[eQTL$label == "trans", ]
+gene_loc <- read.table("data_important/gene_loc_2022_description_expression.tmp", sep = "\t", header = T, quote = "")
+```
+
+```{r}
+eQTL <- read.table("data_important/eQTL_FDR0.01_rf0.4_LOD3_chr_peak_CisTrans_expression.txt", sep = "\t", header = T, quote = "")
+detox <- eQTL[eQTL$gene_label == "detox", ]
+
+cisvstrans <- function(df, gene) {
+  cis <- df[df$label == "cis", ]$label
+  trans <- df[df$label == "trans", ]$label
+  df <- data.frame(gene = gene, label = c(cis, trans))
+  return(df)
+}
+# 
+nall <- cisvstrans(eQTL, "gene")
+ndetox <- cisvstrans(detox, "detox")
+# 
+df <- rbind(nall, ndetox)
+tbl <- as.matrix(table(df))
+chisq <- chisq.test(tbl, simulate.p.value = T, B = 10000) 
+residualTable <- chisq$residuals
+pTable <- tbl
+rowCats <- rownames(tbl)
+colCats <- colnames(tbl)
+for (rc in rowCats) {
+  for (cc in colCats) {
+    rclass <- (df[, 1] == rc)
+    cclass <- (df[, 2] == cc)
+    print(paste(rc, cc))
+    pTable[rc, cc] <- fisher.test(rclass, cclass, alternative = "two.sided")$p.value
+  }
+}
+```

@@ -1,0 +1,324 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+suppressMessages(library("VennDiagram"))
+suppressMessages(library("ggplot2"))
+suppressMessages(library("matrixStats"))
+suppressMessages(library("reshape2"))
+suppressMessages(library("VennDiagram"))
+suppressMessages(library("stringr"))
+suppressMessages(library("dplyr"))
+suppressMessages(library("RColorBrewer"))
+suppressMessages(library("ggrepel"))
+suppressMessages(library("ggnewscale"))
+```
+
+filter DEG on DESeq2 output (file)
+```{r}
+A_raw <- read.table("output/A18_EvsA18_H_0.01.txt", sep = "\t", header = T)
+C_raw <- read.table("output/C31_EvsC31_H_0.01.txt", sep = "\t", header = T)
+gene_loc <- read.table("../data_important/gene_loc_2022_description.txt", sep = "\t", header = T, quote = "")
+gene_loc <- gene_loc[, c("gene", "chromosome", "start", "end")]
+
+cutoff_DEG <- function(df, lfc, SE, padj, gene_loc, out, introgression_chr, introgression_start, introgression_end) {
+  df_sub <- df[complete.cases(df) & abs(df$log2FoldChange) > lfc & df$padj < padj & df$lfcSE < SE, ]
+  df_sub <- merge(gene_loc, df_sub, by.x = "gene", by.y = 0, all.y = T)
+  write.table(df_deg, file = paste0(out, ".txt"), sep = "\t", quote = F, row.names = )
+}
+#
+cutoff_DEG(A_raw, 0.5, 1, 0.01, gene_loc, "output/A18_DEG_lfc0.5_SE1")
+cutoff_DEG(C_raw, 0.5, 1, 0.01, gene_loc, "output/C31_DEG_lfc0.5_SE1")
+```
+
+filter DEGs of NILs based on the introgressed genomic region (location based)
+```{r}
+ANIL <- read.table("output/A18_DEG_lfc0.5_SE1.txt", sep = "\t", header = T)
+CNIL <- read.table("output/C31_DEG_lfc0.5_SE1.txt", sep = "\t", header = T)
+# for ANIL: chromosome_1, 12314313 - 12844691
+Adrop <- ANIL[ANIL$chromosome == "chromosome_1" & ((ANIL$start >= 12314313 & ANIL$start <= 12844691) | (ANIL$end >= 12314313 & ANIL$end <= 12844691)), ]
+Adeg <- ANIL[!(ANIL$gene %in% Adrop$gene), ]
+# for CNIL: chromosome_1, 11869045 - 12569202 (potentially chromosome_1, 1793108 - 4811697)
+Cdrop <- CNIL[CNIL$chromosome == "chromosome_1" & ((CNIL$start >= 11869045 & CNIL$start <= 12569202) | (CNIL$end >= 11869045 & CNIL$end <= 12569202)), ]
+Cdeg <- CNIL[!(CNIL$gene %in% Cdrop$gene), ]
+# 
+print(paste(nrow(ANIL), nrow(Adeg)))
+print(paste(nrow(CNIL), nrow(Cdeg)))
+# 
+write.table(Adeg, file = "output/A_DEG_lfc0.5_SE1_loc.txt", sep = "\t", quote = F, row.names = F)
+write.table(Cdeg, file = "output/C_DEG_lfc0.5_SE1_loc.txt", sep = "\t", quote = F, row.names = F)
+```
+Combine DEGs of A and C NILs (376 DEGs in total)
+```{r}
+A_DEG <- read.table("output/A_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+C_DEG <- read.table("output/C_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+AC_DEG <- unique(c(A_DEG$gene, C_DEG$gene))
+A_raw <- read.table("output/A18_EvsA18_H_0.01.txt", sep = "\t", header = T)
+C_raw <- read.table("output/C31_EvsC31_H_0.01.txt", sep = "\t", header = T)
+A_sub <- A_raw[AC_DEG, c("log2FoldChange", "padj")]
+colnames(A_sub) <- c("A_lfc", "A_padj")
+C_sub <- C_raw[AC_DEG, c("log2FoldChange", "padj")]
+colnames(C_sub) <- c("C_lfc", "C_padj")
+AC_sub <- merge(A_sub, C_sub, by = 0, all = T)
+AC_sub$label <- ifelse(AC_sub$Row.names %in% A_DEG$gene & AC_sub$Row.names %in% C_DEG$gene, "AC", ifelse(AC_sub$Row.names %in% A_DEG$gene, "A", "C"))
+colnames(AC_sub) <- c("gene", "A_lfc", "A_padj", "C_lfc", "C_padj", "label")
+write.table(AC_sub, file = "output/AC_DEG_lfc0.5_SE1_loc.txt", sep = "\t", quote = F, row.names = F)
+```
+
+DEGs of A and C lines compared to eQTL hotspot 1 (venn plot)
+```{r}
+chr1_trans <- read.table("../data_important/hotspot1.txt", sep = "\t", header = T)
+AC_sub <- read.table("output/AC_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+detox <- read.table("../data_important/detox_RC.txt", sep = "\t", header = T)
+NIL_valid <- list()
+NIL_valid[["ANIL"]] <- AC_sub[grepl("A", AC_sub$label), "gene"]
+NIL_valid[["CNIL"]] <- AC_sub[grepl("C", AC_sub$label), "gene"]
+NIL_valid[["chr1"]] <- chr1_trans$gene
+venn_NIL <- venn.diagram(x = NIL_valid, category.names = names(NIL_valid), filename = NULL, margin = 0.05)
+pdf("plot/venn_NIL_hs1_all_lfc0.5_SE1.pdf", width = 5, height = 5)
+grid.draw(venn_NIL)
+dev.off()
+# 
+NIL_detox_valid <- list()
+NIL_detox_valid[["ANIL"]] <- NIL_valid[["ANIL"]][NIL_valid[["ANIL"]] %in% detox$gene]
+NIL_detox_valid[["CNIL"]] <- NIL_valid[["CNIL"]][NIL_valid[["CNIL"]] %in% detox$gene]
+NIL_detox_valid[["chr1"]] <- NIL_valid[["chr1"]][NIL_valid[["chr1"]] %in% detox$gene]
+venn_NIL_detox <- venn.diagram(x = NIL_detox_valid, category.names = names(NIL_detox_valid), filename = NULL, margin = 0.05)
+#
+pdf("plot/venn_NIL_hs1_detox_lfc0.5_SE1.pdf", width = 5, height = 5)
+grid.draw(venn_NIL_detox)
+dev.off()
+```
+
+label genes regulated by HS1 based on NIL validation (file)
+```{r}
+chr1_all <- read.table("../data_important/hotspot1_expression.txt", sep = "\t", header = T)
+AC_sub <- read.table("output/AC_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+AC_NIL <- AC_sub[, c("gene", "label")]
+colnames(AC_NIL) <- c("gene", "NIL_label")
+chr1_NIL <- merge(chr1_all, AC_NIL, by = "gene", all.x = T)
+chr1_NIL[is.na(chr1_NIL)] <- "NS" # NS - no support
+write.table(chr1_NIL, file = "output/HS1wNIL.txt", sep = "\t", quote = F, row.names = F)
+```
+
+lfc of genes responded to HS1 (scatter plot)
+```{r}
+chr1 <- read.table("output/HS1wNIL.txt", sep = "\t", header = T)
+detox <- read.table("../data_important/detox_RC_delete_empty.txt", sep = "\t", header = T)
+chr1_eQTL <- merge(chr1, detox[, c("gene", "name")], by = "gene", all.x = T)
+# add jitter position for genes in bin
+chr1_eQTL$bin_jitter <- 0
+for (r in rownames(chr1_eQTL)) {
+  bstart <- chr1_eQTL[r, "bin_start"]
+  bend <- chr1_eQTL[r, "bin_end"]
+  sample_prop <- sample(seq(10, 40), 1)
+  pos_rand <- (bend - bstart)/50*sample_prop + bstart
+  chr1_eQTL[r, "bin_jitter"] <- pos_rand
+}
+# add bin shading information
+chr1_shade <- unique(chr1_eQTL[, c("bin_chromosome", "bin_start", "bin_end", "bin_position")])
+chr1_shade <- chr1_shade[order(chr1_shade$bin_start), ]
+chr1_shade$numb <- ifelse(seq(1,nrow(chr1_shade)) %% 2 == 0, "e", "o")
+# add shade of bin
+p <- ggplot() + geom_rect(data = chr1_shade, aes(xmin = bin_start, xmax = bin_end, ymin = -Inf, ymax = Inf, fill = numb), alpha = 0.28) + scale_fill_manual(values = c("o" =  "grey", "e" = "transparent")) + geom_hline(yintercept = 0, linetype = "dashed", size = 0.3, color = "grey", alpha = 0.7) + scale_x_continuous(position = "top", breaks = c(chr1_shade$bin_position)) + theme(panel.background = element_rect(color = "grey", fill = "transparent"), panel.grid = element_blank())
+# add gene dot 
+p <- p + new_scale_color() + geom_point(data = chr1_eQTL, aes(x = bin_jitter, y = log2(exp1/exp0), color = NIL_label, shape = gene_label, stroke = 0.4), alpha = 0.8, size = 2) + scale_color_manual(values = c("NS" = "black", "A" = "dark orange", "C" = "deep sky blue", "AC" = "red")) + scale_shape_manual(values = c("detox" = 16, "non-detox" = 1)) 
+# add detox gene name
+chr1_eQTL_sub <- chr1_eQTL[grepl("cyp|ugt|cce|GST", chr1_eQTL$name, ignore.case = T) & abs(log2(chr1_eQTL$exp1/chr1_eQTL$exp0)) > 0.5, ]
+p_sub <- p + geom_text_repel(data = chr1_eQTL_sub, aes(x = bin_jitter, y = log2(exp1/exp0), label = name), size = 2, fontface = "italic", min.segment.length = 0, segment.size = 0.2) + xlab("bin position (Kb)") + ylab("log2FC (eQTL, RM vs. RR)")
+p_all <- p + geom_text_repel(data = chr1_eQTL, aes(x = bin_jitter, y = log2(exp1/exp0), label = name), size = 2, fontface = "italic", min.segment.length = 0, segment.size = 0.2) + xlab("bin position (Kb)") + ylab("log2FC (eQTL, RM vs. RR)")
+# 
+ggsave(plot = p, filename = "plot/HS1_lfc_nolabel.pdf", width = 8, height = 5)
+ggsave(plot = p_sub, filename = "plot/HS1_lfc_sublabel.pdf", width = 8, height = 5)
+ggsave(plot = p_all, filename = "plot/HS1_lfc_label.pdf", width = 8, height = 5)
+```
+
+number of candidate genes in the NIL introgressed regions (A and C overlapped/unique region)
+```{r}
+genotype_insertion <- read.table("output/NIL_introgression.txt", sep = "\t", header = T)
+gene_loc <- read.table("data/gene_loc_2022.txt", sep = "\t", header = T)
+start1 <- 12314313
+end1 <- 12844691 # A-NIL
+start2 <- 11869045
+end2 <- 12569202 # C-NIL
+### 
+# from start2 to start1
+start2_start1_gene <- unique(gene_loc[gene_loc$chromosome == "chromosome_1" & gene_loc$start > start2 & gene_loc$end < start1, ]$gene)
+len1 <- length(start2_start1_gene)
+# from start1 to end2
+start1_end2_gene <- unique(gene_loc[gene_loc$chromosome == "chromosome_1" & gene_loc$start > start1 & gene_loc$end < end2, ]$gene)
+len2 <- length(start1_end2_gene)
+# from end2 to end1
+end2_end1_gene <- unique(gene_loc[gene_loc$chromosome == "chromosome_1" & gene_loc$start > end2 & gene_loc$end < end1, ]$gene)
+len3 <- length(end2_end1_gene)
+print(paste(len1, len2, len3))
+```
+
+Use rectangle to draw the genotype composition of NILs (also eQTL hotspot region)
+```{r}
+parental_genotype <- read.table("output/NIL_introgression.txt", sep = "\t", header = T)
+pdf("plot/NIL_genotype.pdf")
+plot.new()
+start <- 11.8e+06
+end <- 13e+06
+whole_length <- end-start
+segments(0, 0.7, 1, 0.7, lwd = 2) 
+wid <- 0.03
+# 
+for (r in row.names(parental_genotype)) {
+  p <- parental_genotype[r, ]$parental
+  p_start <- parental_genotype[r, ]$start
+  p_end <- parental_genotype[r, ]$end
+  pg <- parental_genotype[r, ]$genotype
+  left <- (p_start-start)/whole_length
+  right <- (p_end-start)/whole_length
+  if (p == "A") height <- 0.3
+  else if (p == "C") height <- 0.1
+  else height = 0.5
+  if (pg == "alt1") polygon(c(left, left, right, right), c(height-wid, height+wid, height+wid, height-wid), col = NA, border = "black")
+  else polygon(c(left, left, right, right), c(height-wid, height+wid, height+wid, height-wid), col = "black", border = "black")
+}
+# 
+dev.off()
+```
+
+log2foldchange of A and C NILs as shown in x- and y-axis (need eQTL HS1 information)
+```{r}
+# NS = black
+# A = dark orange
+# C = deep sky blue
+# AC = red
+# only A = #FFDE17
+# only C = #808285
+AC <- read.table("output/AC_DEG_lfc0.5_SE1_loc.txt", sep = "\t", header = T)
+NIL <- read.table("output/HS1wNIL.txt", sep = "\t", header = T)
+detox <- read.table("../data_important/detox_RC_delete_empty.txt", sep = "\t", header = T)
+AC$eQTL <- ifelse(AC$gene %in% NIL$gene, "chr1", "")
+AC$NIL_eQTL <- paste(AC$label, AC$eQTL, sep = "-")
+AC <- merge(AC, detox, by = "gene", all.x = T)
+AC$gene_label <- ifelse(AC$gene %in% detox$gene, "detox", "non-detox")
+# write.table(AC, file = "AC_DEG_temp.txt", sep = "\t", quote = F, row.names = F)
+# always draw detox on the top layer
+AC <- AC[order(AC$gene_label, decreasing = T), ]
+NIL_p <- ggplot() + geom_hline(yintercept = 0, linetype = "dashed", size = 0.2, color = "grey") + geom_vline(xintercept = 0, linetype = "dashed", size = 0.2, color = "grey") + geom_abline(slope = 1, intercept = 0, size = 0.2, color = "grey", linetype = "dashed") + geom_point(data = AC, aes(x = A_lfc, y = C_lfc, color = NIL_eQTL, shape = gene_label), stroke = 0.35, size = 3) + scale_color_manual(values = c("A-" = "#FFDE17", "C-" = "#808285", "A-chr1" = "dark orange", "AC-" = "dark blue", "AC-chr1" = "red", "C-chr1" = "deep sky blue")) + scale_shape_manual(values = c("detox" = 16, "non-detox" = 1)) + theme(panel.background = element_rect(color = "grey", fill = "transparent"), panel.grid = element_blank()) + xlab("log2(A-NIL)") + ylab("log2(B-NIL)") + coord_fixed() + theme(legend.position = "none") + scale_x_continuous(breaks = seq(-5, 10, 1), limits = c(-5, 10)) + scale_y_continuous(breaks = seq(-5, 10, 1), limits = c(-5, 10))
+NIL_p_all <- NIL_p + geom_text_repel(data = AC, aes(x = A_lfc, y = C_lfc, label = name), size = 2, fontface = "italic", min.segment.length = 0, segment.size = 0.2, max.overlaps = 80) 
+AC_sub <- AC[grepl("cyp|ugt|gst|cce", AC$name, ignore.case = T), ]
+NIL_p_sub <- NIL_p + geom_text_repel(data = AC_sub, aes(x = A_lfc, y = C_lfc, label = name), size = 2, fontface = "italic", min.segment.length = 0, segment.size = 0.2, max.overlaps = 80)
+ggsave(plot = NIL_p, filename = "plot/NIL_lfc0.5_SE1_nolabel.pdf", width = 6, height = 6)
+ggsave(plot = NIL_p_all, filename = "plot/NIL_lfc0.5_SE1_label.pdf", width = 6, height = 6)
+ggsave(plot = NIL_p_sub, filename = "plot/NIL_lfc0.5_SE1_sublabel.pdf", width = 6, height = 6)
+```
+
+NIL and its F1 expression mean and standard deviation (file)
+```{r}
+A_norm <- read.table("output/A18_normalized_count.txt", sep = "\t", header = T, row.names = 1)
+C_norm <- read.table("output/C31_normalized_count.txt", sep = "\t", header = T, row.names = 1)
+AC_norm <- merge(A_norm, C_norm, by = 0, all = T)
+rownames(AC_norm) <- AC_norm$Row.names
+AC_norm$Row.names <- NULL
+# 
+mean_sd <- function(df, label) {
+  df <- df[, grepl(label, colnames(df))]
+  df_mean <- as.data.frame(apply(df, 1, mean))
+  colnames(df_mean) <- paste0(label, "_mean")
+  sample_size <- ncol(df)
+  df_sd <- as.data.frame(apply(df, 1, sd))
+  colnames(df_sd) <- paste0(label, "_sd")
+  df_sd[, paste0(label, "_sem")] <- df_sd[, paste0(label, "_sd")]/sample_size^0.5
+  df_all <- cbind(df_mean, df_sd)
+  return(df_all)
+}
+
+A_E_cal <- mean_sd(AC_norm, "A18_E")
+A_H_cal <- mean_sd(AC_norm, "A18_H")
+A_F1_cal <- mean_sd(AC_norm, "F1_A")
+C_E_cal <- mean_sd(AC_norm, "C31_E")
+C_H_cal <- mean_sd(AC_norm, "C31_H")
+C_F1_cal <- mean_sd(AC_norm, "F1_C")
+NIL <- cbind(A_E_cal, A_H_cal, A_F1_cal, C_E_cal, C_H_cal, C_F1_cal)
+write.table(NIL, "output/NIL_mean_sem.txt", sep = "\t", quote = F, row.names = T)
+```
+
+relative expression by baseline to NIL_E line (RR)
+```{r}
+NIL_summ <- read.table("output/NIL_mean_sem.txt", sep = "\t", header = T, row.names = 1)
+A_NIL <- NIL_summ[, grepl("A", colnames(NIL_summ))]
+C_NIL <- NIL_summ[, grepl("C", colnames(NIL_summ))]
+A_NIL_relative <- A_NIL/A_NIL[, 1]
+C_NIL_relative <- C_NIL/C_NIL[, 1]
+# 
+AC_NIL_relative <- cbind(A_NIL_relative, C_NIL_relative)
+write.table(AC_NIL_relative, file = "output/NIL_mean_sem_relative.txt", sep = "\t", quote = F, row.names = T)
+```
+
+show NIL and F1 expression in a bar plot 
+```{r}
+AC_F1 <- read.table("output/NIL_mean_sem_relative.txt", sep = "\t", header = T)
+AC_mean <- AC_F1[, grepl("_mean", colnames(AC_F1))]
+AC_mean_melt <- reshape2::melt(as.matrix(AC_mean))
+colnames(AC_mean_melt) <- c("gene", "label", "expression")
+AC_mean_melt$group <- unlist(strsplit(as.character(AC_mean_melt$label), split = "_mean", fixed = T))
+AC_sem <- AC_F1[, grepl("_sem", colnames(AC_F1))]
+AC_sem_melt <- reshape2::melt(as.matrix(AC_sem))
+colnames(AC_sem_melt) <- c("gene", "label", "SEM")
+AC_sem_melt$group <- unlist(strsplit(as.character(AC_sem_melt$label), "_sem", fixed = T))
+AC_mean_melt$label <- NULL
+AC_sem_melt$label <- NULL
+AC_value <- merge(AC_mean_melt, AC_sem_melt, by.x = c("gene", "group"))
+# 
+AC_value$group <- factor(AC_value$group, levels = c("A18_E", "F1_A", "A18_H", "C31_E", "F1_C", "C31_H"))
+gene_bar <- read.table("data/bar_gene.txt", sep = "\t", header = T)
+AC_bar <- AC_value[AC_value$gene %in% gene_bar$gene, ]
+AC_bar$gene <- factor(AC_bar$gene, levels = gene_bar$gene)
+# 
+AC_F1_p <- ggplot(data = AC_bar) + geom_bar(color = "black", aes(x = gene, y = expression, fill = group), position = position_dodge(width = 0.85), stat = "identity", width = 0.7, size = 0.3) + scale_fill_manual(values = c("A18_E" = "black", "C31_E" = "black", "A18_H" = "white", "C31_H" = "white", "F1_A" = "grey", "F1_C" = "grey")) + geom_errorbar(aes(x = gene, ymin = expression - 2*SEM, ymax = expression + 2*SEM, group = group), width = 0.7, size = 0.1, position = position_dodge(width = 0.85)) + theme(panel.background = element_rect(color = "grey", fill = "transparent"), panel.grid = element_blank()) + theme(legend.position = "none") + ylab("relative expression") + xlab("")
+ggsave(AC_F1_p, filename = "plot/NIL_F1_bar.pdf", width = 8, height = 2.3)
+```
+
+F1 inheritance in NIL A and C to collect in one file (file dropped)
+```{r}
+F1_A_E <- read.table("output/A18_inheritance/F1vsA18_E.txt", sep = "\t", header = T, row.names = 1)
+colnames(F1_A_E) <- paste0("F1vsA_E.", colnames(F1_A_E))
+F1_A_H <- read.table("output/A18_inheritance/F1vsA18_H.txt", sep = "\t", header = T, row.names = 1)
+colnames(F1_A_H) <- paste0("F1vsA_H.", colnames(F1_A_H))
+F1_A_inheritance <- read.table("output/A18_inheritance/category_partial.txt", sep = "\t", header = T, row.names = 1)
+colnames(F1_A_inheritance) <- paste0("A.", colnames(F1_A_inheritance))
+F1_C_E <- read.table("output/C31_inheritance/F1vsC31_E.txt", sep = "\t", header = T, row.names = 1)
+colnames(F1_C_E) <- paste0("F1vsC_E.", colnames(F1_C_E))
+F1_C_H <- read.table("output/C31_inheritance/F1vsC31_H.txt", sep = "\t", header = T, row.names = 1)
+colnames(F1_C_H) <- paste0("F1vsC_H.", colnames(F1_C_H))
+F1_C_inheritance <- read.table("output/C31_inheritance/category_partial.txt", sep = "\t", header = T, row.names = 1)
+colnames(F1_C_inheritance) <- paste0("C.", colnames(F1_C_inheritance))
+A_F1 <- merge(F1_A_E, F1_A_H, by = 0)
+C_F1 <- merge(F1_C_E, F1_C_H, by = 0)
+A_inh <- merge(A_F1, F1_A_inheritance[, c("A.label", "A.category")], by.x = "Row.names", by.y = 0)
+C_inh <- merge(C_F1, F1_C_inheritance[, c("C.label", "C.category")], by.x = "Row.names", by.y = 0)
+AC_inheritance <- merge(A_inh, C_inh, by = "Row.names")
+write.table(AC_inheritance, file = "output/NIL_F1_inheritance.txt", quote = F, row.names = F, sep = "\t")
+```
+
+done
+
+hypergeometric test of overlapped genes 
+```{r}
+# eQTL: 182 genes
+# A-NIL: 243 genes 
+# C-NIL: 196 genes
+# A-NIL & eQTL: 62 genes
+# C-NIL & eQTL: 57 genes
+# A-NIL & C-NIL: 63 genes
+# total expressed: 13411 genes 
+eQTL <- 182
+A <- 243
+C <- 196
+A_eQTL <- 62
+C_eQTL <- 57
+A_C <- 63
+n <- 13411
+A_eQTL_p <- phyper(A_eQTL, eQTL, n-eQTL, A, lower.tail = F) # 3.757181e-65
+C_eQTL_p <- phyper(C_eQTL, eQTL, n-eQTL, C, lower.tail = F) # 1.762453e-63
+A_C_p <- phyper(A_C, A, n-A, C, lower.tail = F) # 2.56623e-64
+```
+
