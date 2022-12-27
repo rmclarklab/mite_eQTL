@@ -1,14 +1,14 @@
 # Expression quantitative trait locus (eQTL) mapping in <i>Tetranychus urticae</i> (a generalist spider mite herbivore)
 
-This is a repository for the data analysis of an eQTL mapping project and analysis with <i>Tetranychus urticae</i>.
+This is a repository for performing and analyzing an eQTL mapping experiment with <i>Tetranychus urticae</i>, the two-spotted spider mite.
 
 ## Author
 
-This site, and the respective code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published.
+This site, and the respective pipeline documentation and code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published. The work is a collaboration with Thomas Van Leeuwen's laboratory at Ghent University.
 
 ## Experimental design
    
-   We used a susceptible ROS-ITi (diploid mother, ♀, **S**) and more resistant MR-VPi (haploid father, ♂, **R**) inbred strains as the founder strains (F0). By crossing the two parental strains, we collected F1 female (diploid). And F1 female lay eggs without ferterlization developing into males (F2, haploid), which are back crossed to the S strain female. For each backcross, all offsprings are collected to generate one single isogenic pool for RNA-seq extraction. We generated a total of 458 isogenic samples of F3 generation developed from F2 famales crossing with S strain male.
+We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and more resistant strain MR-VPi (haploid father, ♂, **R**) as inbred parent strains for the generation of isogenic F3 populations samples from which RNA was collected for RNA-seq for use in eQTL mapping.
 
 ## Table of contents
 
