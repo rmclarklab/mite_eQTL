@@ -3,6 +3,10 @@
 This is a repo for the data analysis of Tetranychus urticae eQTL project. </br>
 eQTL is QTL explaining gene expression, and it can be identified via association analysis between genotype and gene expression.
 
+## Author
+
+This site, and the respective code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published.
+
 ## Experimental design
    
    We used a susceptible ROS-ITi (diploid mother, ♀, **S**) and more resistant MR-VPi (haploid father, ♂, **R**) inbred strains as the founder strains (F0). By crossing the two parental strains, we collected F1 female (diploid). And F1 female lay eggs without ferterlization developing into males (F2, haploid), which are back crossed to the S strain female. For each backcross, all offsprings are collected to generate one single isogenic pool for RNA-seq extraction. We generated a total of 458 isogenic samples of F3 generation developed from F2 famales crossing with S strain male.
