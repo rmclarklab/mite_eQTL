@@ -1,7 +1,6 @@
-# Expression QTL (eQTL) mapping in <i>Tetranychus urticae</i> (a generalist spider mite herbivore)
+# Expression quantitative trait locus (eQTL) mapping in <i>Tetranychus urticae</i> (a generalist spider mite herbivore)
 
-This is a repo for the data analysis of Tetranychus urticae eQTL project. </br>
-eQTL is QTL explaining gene expression, and it can be identified via association analysis between genotype and gene expression.
+This is a repository for the data analysis of an eQTL mapping project and analysis with <i>Tetranychus urticae</i>.
 
 ## Author
 
