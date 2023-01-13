@@ -14,11 +14,10 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 
 - [DNA-seq for variants calling](#DNA-seq-for-variants-calling)
 - [Map RNA-seq against the reference genome](#Map-RNA-seq-against-the-reference-genome)
-- [Genotype call for RILs based on RNA-seq alignment](#Genotype-call-for-RILs-based-on-RNA-seq-alignment)
+- [Genotype call for eQTL mapping populations based on RNA-seq alignment](#Genotype-call-for-eQTL-mapping-populations-based-on-RNA-seq-alignment)
 - [Update GFF3 file for the reference genome](#Update-GFF3-file-for-the-reference-genome)
 - [Gene expression level quantification](#Gene-expression-level-quantification)
 - [Association analysis between genotype and gene expression](#Association-analysis-between-genotype-and-gene-expression)
-- [Allele-specific expression for determination of <i>cis</i>-distance](#Allele-specific-expression-for-determination-of-cis-distance)
 
 ## Programs
 
@@ -26,7 +25,6 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 - BWA v0.7.17-r1188
 - STAR v2.7.3a
 - GATK v4.0 and upper
-- picard
 - samtools v1.9 and upper
 - htseq-count v2.0.1 and upper
 - R v4.1.3 (packages: DESeq2 v1.34; MatrixEQTL v2.3; R/qtl v1.46) and upper
@@ -111,7 +109,7 @@ STAR --runMode genomeGenerate --runThreadN 30 --genomeDir STAR_index --genomeFas
 STAR --genomeDir STAR_index --runThreadN 20 --readFilesIn r1.fastq.gz r2.fastq.gz --twopassMode Basic --sjdbOverhang 99 --outFileNamePrefix sample_name. --readFilesCommand zcat --alignIntronMax 30000 --outSAMtype BAM Unsorted && samtools sort sample_name.Aligned.out.bam -o sample_name_sorted.bam -@ 8 && samtools index sample_name_sorted.bam 
 ```
 
-## Genotype call for F3 populations based on RNA-seq alignment BAM file
+## Genotype call for eQTL mapping populations based on RNA-seq alignment
 
 We developed a customized pipeline for genotyping purposes of F3 isogenic populations. 
 Inputs:
@@ -175,7 +173,7 @@ Notice that the new version htseq-count (v2.0) can process multiple BAM files in
 # merge htseq-count output of all samples into one file, -O for output name
 Rscript DESeq2_norm.R -count all_sample.txt -O all_sample_normalizedbyDESeq2
 ```
-## Association analysis between genotype and expression phenotype
+## Association analysis between genotype and gene expression
   For each F3 sample, its genotype blocks and gene expression data are available. Association analysis was performed using the available data for the 458 F3 samples.
 
 1. To alleviate the effects from outlier expression data and alleviate systematic inflation problem, we performed quantile normalization on gene expression data (see also [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/faq.html)). The normalization is on individual gene level, and gene expression quantity across all samples fit normal distribution while preserving the relative rankings. Run quantile_norm.R (under normalization folder):
