@@ -8,7 +8,7 @@ This site, and the respective pipeline documentation and code, has been assemble
 
 ## Experimental design
    
-We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and more resistant strain MR-VPi (haploid father, ♂, **R**) as inbred parent strains for the generation of isogenic F3 populations samples from which RNA was collected for RNA-seq for use in eQTL mapping.
+We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and more resistant strain MR-VPi (haploid father, ♂, **R**) as inbred parent strains for the generation of isogenic F3 population samples from which RNA was collected for RNA-seq for use in eQTL mapping.
 
 ## Table of contents
 
