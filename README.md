@@ -2,7 +2,7 @@
 
 This is a repository for performing and analyzing an eQTL mapping experiment with <i>Tetranychus urticae</i>, the two-spotted spider mite.
 
-## Author
+## Authorship
 
 This site, and the respective pipeline documentation and code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published. The work is a collaboration with Thomas Van Leeuwen's laboratory at Ghent University.
 
