@@ -4,7 +4,8 @@ This is a repository for performing and analyzing an eQTL mapping experiment wit
 
 ## Authorship
 
-This site, and the respective pipeline documentation and code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published. The work is a collaboration with Thomas Van Leeuwen's laboratory at Ghent University.
+This site, and the respective pipeline documentation and code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published. The work is a collaboration with Thomas Van Leeuwen's laboratory at Ghent University. <br>
+For question regarding to the use of scripts and data analysis steps, contact <i>meiyuan.ji@utah.edu</i> or <i>clark@biology.utah.edu</i>. 
 
 ## Experimental design
    
@@ -32,6 +33,7 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 [NOTE]To enable parallel processing, python model mpi4py need to be installed. 
 
 ## DNA-seq for variants calling
+For variants calling See folder "VCF" <br> 
 To call variants for the inbred **R** and **S** strains, we mapped illumina DNA-seq against the three-chromosome reference genome (London strain, see [Wybouw, Kosterlitz, et al., 2019](https://academic.oup.com/genetics/article/211/4/1409/5931522)). <br>
 GATK best practice for variants calling is refered [here](https://gatk.broadinstitute.org/hc/en-us/sections/360007226651-Best-Practices-Workflows). <br>
 1. First, prepare index for the genome fasta file;
@@ -110,7 +112,7 @@ STAR --genomeDir STAR_index --runThreadN 20 --readFilesIn r1.fastq.gz r2.fastq.g
 ```
 
 ## Genotype call for eQTL mapping populations based on RNA-seq alignment
-
+See folder "genotype" <br>
 We developed a customized pipeline for genotyping purposes of F3 isogenic populations. 
 Inputs:
   - BAM of each F3 sample in coordinately sorted fashion and with its index file;
@@ -143,6 +145,7 @@ Rscript block_vis.R -geno sample_genotype_block.txt
 <img width="300" alt="Screen Shot 2022-05-01 at 3 15 45 PM" src="https://user-images.githubusercontent.com/63678158/166165078-eaeace45-abfc-48ca-9301-684e0f670db4.png">
 
 ## Update GFF3 file for the reference genome
+See folder "GFF_update" <br>
   To integrate all annotated gene information in the current three-chromosome reference genome, we added gene models from [Orcae database](https://bioinformatics.psb.ugent.be/gdb/tetranychus/) (version of 01252019) and updated the current GFF3 file. <br>
   To transfer gene models on fragmented scaffold genomes onto three-chromosome genome scale, see script ```GFF_record.py``` under GFF_update folder. <br>
   Combine the added gene models to the current GFF3 file and sort it using [gff3sort.pl](https://github.com/billzt/gff3sort). <br>
@@ -159,6 +162,7 @@ tabix -p gff output.gff.gz
 ```
 
 ## Gene expression level quantification
+See folder "normalization" <br> 
 1. By taking the updated GFF version, we run htseq-count on the RNA-seq alignment BAM files and output read count on gene basis.
 
 ```bash
@@ -173,7 +177,8 @@ Notice that the new version htseq-count (v2.0) can process multiple BAM files in
 # merge htseq-count output of all samples into one file, -O for output name
 Rscript DESeq2_norm.R -count all_sample.txt -O all_sample_normalizedbyDESeq2
 ```
-## Association analysis between genotype and gene expression
+## Association analysis between genotype and gene expression for eQTLs mapping
+See folder "eQTL" <br>
   For each F3 sample, its genotype blocks and gene expression data are available. Association analysis was performed using the available data for the 458 F3 samples.
 
 1. To alleviate the effects from outlier expression data and alleviate systematic inflation problem, we performed quantile normalization on gene expression data (see also [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/faq.html)). The normalization is on individual gene level, and gene expression quantity across all samples fit normal distribution while preserving the relative rankings. Run quantile_norm.R (under normalization folder):
@@ -213,4 +218,39 @@ You should decide the model for the best performance of your own data and sitati
 mpiexec -n 5 eQTL_parse.py -eQTL MatrixeQTL_output -assoc marker_association.txt -O parsed_eQTL
 ```
 This process memory consuming, make sure you have enough memory to support running in multiple cores. 
+
+## Gene copy number variation estimation 
+See folder "CNV" <br>
+1. count coverage depth on gene coding region (default stepsize 1 bp). <br>
+```bash
+python gene_coverage.py [ref] [gtf] [bam] -O [out] 
+```
+required arguments for this script
+ref: reference genome in fasta file <br>
+gtf: gtf file for the reference genome <br>
+bam: bam of reads aligned to reference genome <br>
+out: output folder
+- A new "out" folder will be created (if not exist) and all output files will be written under the folder. <br>
+- File named "pos_depth.txt" (coverage at gene coding positions) will be generated under the \[out\] folder. <br>
+
+2. report the single-copy coverage depth for the BAM file.  <br>
+```bash
+Rscript single_depth.R [out]/pos_depth.txt [cov_est] -O [out] 
+```
+Arguments from last step:
+cov_est: the estimated coverage for the BAM file <br>
+out: output folder (it should be the same as in "Step 1") <br>
+- File named "single_cov.txt" (single copy coverage) will be generated under the \[out\] folder <br>
+- File named "histogram.pdf" (coverage distribution) will be generated under the \[out\] folder <br>
+
+3. estimate gene CNV based on gene coding region coverage depth <br>
+```bash
+python gene_CNV.py [out]/pos_depth.txt [out]/single_cov.txt -O [out] 
+```
+Arguments from last step:
+out: output folder (it should be the same as in "Step 1" and "Step 2") <br>
+- File named "gene_cnv.txt" will be generated under the \[out\] folder. <br>
+
+## Figure generation 
+Scripts used for visualization, See folder "visualization" <br> 
 
