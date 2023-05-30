@@ -118,7 +118,7 @@ Inputs:
   - BAM RNA-seq data file from each F3 isogenic family (the input must be coordinate sorted and have an index file (.BAI file));
   - SNP information (tab-separated) for the two F0 strains (the fixed differences between strains, see final output of [DNA-seq for variants calling](#DNA-seq-for-variants-calling)).
 
-1. Count allele-specific reads on SNP sites for each sample separately
+1. Count allele-specific reads at SNP sites for each sample separately
 ```bash
 # run genotype_allele.py to count allele-specifc reads on the SNP sites
 # this is a multiple-core processing program, adjust core usage via "-n"
