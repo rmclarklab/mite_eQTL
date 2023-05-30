@@ -1,6 +1,6 @@
-# Expression quantitative trait locus (eQTL) mapping in <i>Tetranychus urticae</i> (a generalist spider mite herbivore)
+# Expression quantitative trait locus (eQTL) mapping in <i>Tetranychus urticae</i> (a generalist spider mite herbivore) and associated analyses
 
-This is a repository for performing and analyzing an eQTL mapping experiment with <i>Tetranychus urticae</i>, the two-spotted spider mite.
+This is a repository for performing and analyzing an eQTL mapping experiment with <i>Tetranychus urticae</i>, the two-spotted spider mite, and follow up studies.
 
 ## Authorship
 
@@ -9,7 +9,7 @@ For questions regarding to the use of scripts and data analysis steps, contact <
 
 ## Experimental design
    
-We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and more resistant strain MR-VPi (haploid father, ♂, **R**) as inbred parent strains for the generation of isogenic F3 population samples from which RNA was collected for RNA-seq for use in eQTL mapping.
+We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and more resistant strain MR-VPi (haploid father, ♂, **R**) as inbred parent strains for the generation of isogenic F3 full sibling families from which RNA was collected for RNA-seq for use in eQTL mapping (the resulting set of F3 isogenic families constituted the eQTL mapping population).
 
 ## Table of contents
 
@@ -20,7 +20,7 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 - [Gene expression level quantification](#Gene-expression-level-quantification)
 - [Association analysis between genotype and gene expression](#Association-analysis-between-genotype-and-gene-expression)
 
-## Programs
+## Programs used / Dependencies
 
 - python3+ (packages: pysam v0.15.3; biopython v1.76; pandas v0.25; numpy v1.21; mpi4py v3.0) and upper
 - BWA v0.7.17-r1188
@@ -33,10 +33,10 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 [NOTE]To enable parallel processing, python model mpi4py need to be installed. 
 
 ## DNA-seq for variants calling
-For variants calling See folder "VCF" <br> 
+For variant calling See folder "VCF". <br> 
 To call variants for the inbred **R** and **S** strains, we mapped illumina DNA-seq against the three-chromosome reference genome (London strain, see [Wybouw, Kosterlitz, et al., 2019](https://academic.oup.com/genetics/article/211/4/1409/5931522)). <br>
-GATK best practice for variants calling is refered [here](https://gatk.broadinstitute.org/hc/en-us/sections/360007226651-Best-Practices-Workflows). <br>
-1. First, prepare index for the genome fasta file;
+For more about GATK best practices for variants calling, see [here](https://gatk.broadinstitute.org/hc/en-us/sections/360007226651-Best-Practices-Workflows). <br>
+1. First, prepare the index for the genome fasta file;
 ```bash
 # make directory for bwa index files
 mkdir bwa_index
