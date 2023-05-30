@@ -128,9 +128,9 @@ mpiexec -n 10 SNP_allele_count.py -V variant_RS.txt -bam sample_name.bam -O samp
 
 After running for all samples, place all of them in the same folder (raw_count). <br>
 
-2. Call genotypic blocks based on allele-specific read count of good SNPs 
+2. Call genotypic blocks based on allele-specific read counts at SNP sites.
 
-You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. About how to provide chromosome length, see [here](https://biopython.org/docs/1.75/api/Bio.SeqIO.html). Example data set see under data folder.
+You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. For information about the chromosome lengths format, see [here](https://biopython.org/docs/1.75/api/Bio.SeqIO.html). Example data set see under data folder.
 ```bash
 # run genotype_block.py to call genotype blocks for each F3 sample
 genotype_block.py -chr chr.txt -chrLen chrlen.txt -C sample_allele_count.txt -O sample_genotype_block
