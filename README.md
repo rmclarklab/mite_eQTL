@@ -34,7 +34,7 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 [NOTE]To enable parallel processing, python model mpi4py need to be installed. 
 
 ## DNA-seq for variants calling
-For variant calling See folder "VCF". <br> 
+For variant calling see folder "VCF". <br> 
 To call variants for the inbred **R** and **S** strains, we mapped illumina DNA-seq against the three-chromosome reference genome (London strain, see [Wybouw, Kosterlitz, et al., 2019](https://academic.oup.com/genetics/article/211/4/1409/5931522)). <br>
 For more about GATK best practices for variants calling, see [here](https://gatk.broadinstitute.org/hc/en-us/sections/360007226651-Best-Practices-Workflows). <br>
 1. First, prepare the index for the genome fasta file;
