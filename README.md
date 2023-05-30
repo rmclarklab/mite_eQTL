@@ -150,7 +150,7 @@ See folder "GFF_update" <br>
   To transfer gene models from the prior <i>T. urticae</i> genome that was not assembled to chromosomes, to the three-chromosome genome, see script ```GFF_record.py``` under GFF_update folder. <br>
   To combine the added gene models to the current GFF3 file and sort it using [gff3sort.pl](https://github.com/billzt/gff3sort). <br>
   Transform from GFF3 to GTF format using script ```gff2gtf.py``` under GFF_update folder. <br>
-  To compress and add index for GFF/GTF, see below:
+  To compress and add index for GFF/GTF, see below (the output was converted to the GTF file used for subsequence analyses, see below):
 
 ```bash
 # sort gff using gff3sort.pl
@@ -163,7 +163,7 @@ tabix -p gff output.gff.gz
 
 ## Gene expression level quantification
 See folder "normalization" <br> 
-1. Using the updated GTF, we run htseq-count on the RNA-seq alignment BAM files and output read count on gene basis.
+1. Using the updated GTF, run htseq-count on the RNA-seq alignment BAM files for the eQTL mapping population and output the read counts per gene.
 
 ```bash
 # htseq-count command line (adjust number of CPU "-n" based on sample BAMs number, per BAM per CPU)
@@ -171,12 +171,19 @@ htseq-count -r pos -s reverse -t exon -i gene_id --nonunique none --with-header 
 ```
 Notice that the new version htseq-count (v2.0) can process multiple BAM files in parallel.
 
-2. For raw read-count from htseq-count output, we performed library-size normalization using DESeq2 (function estimateSizeFactors). <br>
+2. From the raw read-count data obtained by running htseq-count (see above), performed library-size normalization using DESeq2 (function estimateSizeFactors). <br>
 
 ```bash 
 # merge htseq-count output of all samples into one file, -O for output name
 Rscript DESeq2_norm.R -count all_sample.txt -O all_sample_normalizedbyDESeq2
 ```
+3. Perform quantile normalization on the library-size normalized read data
+
+```bash
+# use the code quantile_norm.R 
+quantile_norm.R -norm_count all_sample_normalizedbyDESeq2.txt -O all_sample_quantile.txt
+```
+
 ## Association analysis between genotype and gene expression for eQTLs mapping
 See folder "eQTL" <br>
   For each F3 sample, its genotype blocks and gene expression data are available. Association analysis was performed using the available data for the 458 F3 samples.
