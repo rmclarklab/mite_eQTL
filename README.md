@@ -26,8 +26,8 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 - python3+ (packages: pysam v0.15.3; biopython v1.76; pandas v0.25; numpy v1.21; mpi4py v3.0) and upper
 - BWA v0.7.17-r1188
 - STAR v2.7.3a
-- GATK v4.0 and upper
-- samtools v1.9 and upper
+- GATK v4.2 and upper
+- samtools v1.15 and upper
 - htseq-count v2.0.1 and upper
 - R v4.1.3 (packages: DESeq2 v1.34; MatrixEQTL v2.3; R/qtl v1.46) and upper
 
