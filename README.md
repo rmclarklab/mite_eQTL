@@ -56,34 +56,34 @@ bwa mem -t 20 -R "@RG\tID:20190412_8\tSM:ROS-ITi\tPL:Illumina\tLB:ROS-ITi" bwa_i
 # run bwa mapping for MR-VPi sample (paired-end DNA sequences)
 bwa mem -t 20 -R "@RG\tID:20190312\tSM:MR-VPi\tPL:Illumina\tLB:MR-VPi" bwa_index/Tetranychus_urticae_2017.11.21.fasta r1.fastq.gz r2.fastq.gz | samtools view -Su - | samtools sort -@ 20 - -o MR-VPi.BWA.bam
 ```
-3. Mark duplicated reads that are arised from PCR using picard MarkDuplicate;
+3. Mark duplicated reads (PCR duplicates) using picard MarkDuplicate;
 ```bash
-# mark duplicated reads in BWA mapping files
+# mark duplicated reads in the BWA generated BAM files
 picard MarkDuplicates I=ROS-ITi.BWA.bam O=ROS-IT_duplicate.bam M=ROS-IT_metrics.txt && samtools index ROS-IT_duplicate.bam
 picard MarkDuplicates I=MR-VPi.BWA.bam O=MR-VP_duplicate.bam M=MR-VP_metrics.txt && samtools index MR-VP_duplicate.bam
-# left align insertion and deletion mappings (optional)
+# left align indels (optional)
 gatk LeftAlignIndels -R Tetranychus_urticae_2017.11.21.fasta -I ROS-IT_duplicate.bam -O ROS-IT_leftalign.bam
 gatk LeftAlignIndels -R Tetranychus_urticae_2017.11.21.fasta -I MR-VP_duplicate.bam -O MR-VP_leftalign.bam
 ```
 4. Run the Best practice of GATK pipeline for variant calling;
 ```bash
-# run gatk HaplotypeCaller to generate g.vcf file
+# run gatk HaplotypeCaller to generate g.vcf files
 gatk HaplotypeCaller -R <ref> -I ROS-IT_leftalign.bam -ERC GVCF -O ROS-IT.g.vcf.gz
 gatk HaplotypeCaller -R <ref> -I MR-VP_leftalign.bam -ERC GVCF -O MR-VP.g.vcf.gz
 # Merge GVCFs from the two samples
 gatk GenomicsDBImport --genomicsdb-workspace-path <path> -R <ref> -sequence-dictionary <dict> --sample-name-map <samples>
-# Joint genotype call
+# Perform joint genotype calling
 gatk GenotypeGVCFs -R <ref> -V gendb://your_database -O <output.vcf.gz>
-# sort VCF and generate its index file
+# sort the resulting VCF and generate its index file
 bcftools sort -o <sorted.vcf.gz> -O z input.vcf
 bcftools index -t sorted.vcf.gz
 ```
-5. Select variants data in unfiltered vcf file;
+5. Select variants from the unfiltered vcf file;
 ```bash
 # select SNPs
 gatk SelectVariants -R <ref> -V input.vcf.gz -select-type-to-include SNP -O SNP.vcf.gz
 ```
-6. Filter out SNPs based on criterias (MQ > 40, QD > 2, SOR < 3 and GT field in inbred state)
+6. Filter out SNPs based on the following criteria (MQ > 40, QD > 2, SOR < 3 and GT field in inbred state)
 ```bash
 vcf_pass.py -vcf sorted.vcf.gz -R <ref> -O filtered.vcf.gz
 ```
