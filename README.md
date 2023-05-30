@@ -220,7 +220,7 @@ Note that this process is memory consuming.
 
 ## Gene copy number variation estimation 
 See folder "CNV" <br>
-1. count coverage depth on gene coding region (default stepsize 1 bp). <br>
+1. Count coverage depth on gene coding regions (default stepsize 1 bp). <br>
 ```bash
 python gene_coverage.py [ref] [gtf] [bam] -O [out] 
 ```
@@ -229,10 +229,10 @@ ref: reference genome in fasta file <br>
 gtf: gtf file for the reference genome <br>
 bam: bam of reads aligned to reference genome <br>
 out: output folder
-- A new "out" folder will be created (if not exist) and all output files will be written under the folder. <br>
+- A new "out" folder will be created (if not existing) and all output files will be written under the folder. <br>
 - File named "pos_depth.txt" (coverage at gene coding positions) will be generated under the \[out\] folder. <br>
 
-2. report the single-copy coverage depth for the BAM file.  <br>
+2. Report the single-copy coverage depth for the BAM file.  <br>
 ```bash
 Rscript single_depth.R [out]/pos_depth.txt [cov_est] -O [out] 
 ```
@@ -242,14 +242,11 @@ out: output folder (it should be the same as in "Step 1") <br>
 - File named "single_cov.txt" (single copy coverage) will be generated under the \[out\] folder <br>
 - File named "histogram.pdf" (coverage distribution) will be generated under the \[out\] folder <br>
 
-3. estimate gene CNV based on gene coding region coverage depth <br>
+3. Estimate gene CNV based on gene coding region coverage depth <br>
 ```bash
 python gene_CNV.py [out]/pos_depth.txt [out]/single_cov.txt -O [out] 
 ```
 Arguments from last step:
 out: output folder (it should be the same as in "Step 1" and "Step 2") <br>
 - File named "gene_cnv.txt" will be generated under the \[out\] folder. <br>
-
-## Figure generation 
-Scripts used for visualization, See folder "visualization" <br> 
 
