@@ -89,34 +89,34 @@ vcf_pass.py -vcf sorted.vcf.gz -R <ref> -O filtered.vcf.gz
 ```
 For Variants filtering, see [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants) also for hard-filtering. <br>
 
-7. Pick SNPs that are distinguishable between the two **R** and **S** strains. Output in tab-separated file
+7. Pick SNPs that distinguish the two **R** and **S** strains (one allele in one sample and the second in the other), and output to a tab-separated file
 ```bash
 # Comparing filtered VCF files for ROS-IT and MR-VP, and pick genotype-calls different between them
 vcf_compare.py -vcf1 ROS-IT.filtered.vcf.gz -vcf2 MR-VP.filtered.vcf.gz -R <ref> -O variant_RS
 ```
-Save the tab-separated SNP information for further use. 
+Retain the tab-separated SNP information for further use (see below). 
 
 ## Map RNA-seq against the reference genome
-The three-chromosome reference genome was used, the same for DNA-seq mapping. <br>
-We used the RNA-seq aligners [STAR](https://github.com/alexdobin/STAR) 
-1. Generate indices for genome fasta file.
+Align the Illumina RNA read data for the eQTL mapping population to the three-chromosome reference genome (that is, the same genome used for DNA-seq read alignment). <br>
+For RNA-seq read alignment we used the RNA-seq aligner [STAR](https://github.com/alexdobin/STAR) 
+1. Generate indices for the genome fasta file.
 ```bash
 # STAR index generation
 STAR --runMode genomeGenerate --runThreadN 30 --genomeDir STAR_index --genomeFastaFiles Tetranychus_urticae_2017.11.21.fasta --genomeSAindexNbases 12
 ```
 
-2. Map RNA-seq onto the reference genome given the index folder. 
+2. Map RNA-seq onto the reference genome using the index folder. 
 ```bash
 # STAR mapping, sort and index BAM alignment file
 STAR --genomeDir STAR_index --runThreadN 20 --readFilesIn r1.fastq.gz r2.fastq.gz --twopassMode Basic --sjdbOverhang 99 --outFileNamePrefix sample_name. --readFilesCommand zcat --alignIntronMax 30000 --outSAMtype BAM Unsorted && samtools sort sample_name.Aligned.out.bam -o sample_name_sorted.bam -@ 8 && samtools index sample_name_sorted.bam 
 ```
 
-## Genotype call for eQTL mapping populations based on RNA-seq alignment
+## Genotype calling for eQTL mapping populations based on RNA-seq alignment
 See folder "genotype" <br>
-We developed a customized pipeline for genotyping purposes of F3 isogenic populations. 
+We developed a customized pipeline to genotype the F3 isogenic sibling families using the RNA-seq read alignments and SNP data obtained from the DNA-seq read alignments and variant calls for the **R** and **S** parents (F0 generation). 
 Inputs:
-  - BAM of each F3 sample in coordinately sorted fashion and with its index file;
-  - SNPs information (tab-separated) that are distinguishable between the two inbred stains.
+  - BAM RNA-seq data file from each F3 isogenic family (the input must be coordinate sorted and have an index file (.BAI file));
+  - SNP information (tab-separated) for the two F0 strains (the fixed differences between strains, see final output of [DNA-seq for variants calling](#DNA-seq-for-variants-calling)).
 
 1. Count allele-specific reads on SNP sites for each sample separately
 ```bash
