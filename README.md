@@ -163,7 +163,7 @@ tabix -p gff output.gff.gz
 
 ## Gene expression level quantification
 See folder "normalization" <br> 
-1. By taking the updated GFF version, we run htseq-count on the RNA-seq alignment BAM files and output read count on gene basis.
+1. Using the updated GTF, we run htseq-count on the RNA-seq alignment BAM files and output read count on gene basis.
 
 ```bash
 # htseq-count command line (adjust number of CPU "-n" based on sample BAMs number, per BAM per CPU)
