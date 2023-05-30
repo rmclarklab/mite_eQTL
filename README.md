@@ -130,7 +130,7 @@ After running for all samples, place all of them in the same folder (raw_count).
 
 2. Call genotypic blocks based on allele-specific read counts at SNP sites.
 
-You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. For information about the chromosome lengths format, see [here](https://biopython.org/docs/1.75/api/Bio.SeqIO.html). Example data set see under data folder.
+You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. For information about the chromosome lengths format, see [here](https://biopython.org/docs/1.75/api/Bio.SeqIO.html). See example input under the "data" folder.
 ```bash
 # run genotype_block.py to call genotype blocks for each F3 sample
 genotype_block.py -chr chr.txt -chrLen chrlen.txt -C sample_allele_count.txt -O sample_genotype_block
@@ -146,9 +146,9 @@ Rscript block_vis.R -geno sample_genotype_block.txt
 
 ## Update GFF3 file for the reference genome
 See folder "GFF_update" <br>
-  To integrate all annotated gene information in the current three-chromosome reference genome, we added gene models from [Orcae database](https://bioinformatics.psb.ugent.be/gdb/tetranychus/) (version of 01252019) and updated the current GFF3 file. <br>
-  To transfer gene models on fragmented scaffold genomes onto three-chromosome genome scale, see script ```GFF_record.py``` under GFF_update folder. <br>
-  Combine the added gene models to the current GFF3 file and sort it using [gff3sort.pl](https://github.com/billzt/gff3sort). <br>
+  To integrate existing annotated gene information onto the <i>T. urticae</i> three-chromosome reference genome (see above), we added gene models from [Orcae database](https://bioinformatics.psb.ugent.be/gdb/tetranychus/) (version of 01252019) to create an updated GFF3 file for the current study. <br>
+  To transfer gene models from the prior <i>T. urticae</i> genome that was not assembled to chromosomes, to the three-chromosome genome, see script ```GFF_record.py``` under GFF_update folder. <br>
+  To combine the added gene models to the current GFF3 file and sort it using [gff3sort.pl](https://github.com/billzt/gff3sort). <br>
   Transform from GFF3 to GTF format using script ```gff2gtf.py``` under GFF_update folder. <br>
   To compress and add index for GFF/GTF, see below:
 
