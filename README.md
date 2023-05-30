@@ -177,54 +177,46 @@ Notice that the new version htseq-count (v2.0) can process multiple BAM files in
 # merge htseq-count output of all samples into one file, -O for output name
 Rscript DESeq2_norm.R -count all_sample.txt -O all_sample_normalizedbyDESeq2
 ```
-3. Perform quantile normalization on the library-size normalized read data
+3. Perform quantile normalization on the library-size normalized read data to alleviate the effects from outliers and alleviate any systematic inflation (see also [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/faq.html)). Briefly, the normalization is on individual gene level, with gene expression across all samples is fit to a normal distribution while preserving the relative rankings.
 
 ```bash
 # use the code quantile_norm.R 
-quantile_norm.R -norm_count all_sample_normalizedbyDESeq2.txt -O all_sample_quantile.txt
+Rscript quantile_norm.R -norm_count all_sample_normalizedbyDESeq2.txt -O all_sample_quantile.txt
 ```
 
-## Association analysis between genotype and gene expression for eQTLs mapping
+## Association analysis between genotype and gene expression for eQTL mapping
 See folder "eQTL" <br>
-  For each F3 sample, its genotype blocks and gene expression data are available. Association analysis was performed using the available data for the 458 F3 samples.
+  For each F3 isogenic sibling family, the genotype blocks and gene expression data are now available (see above). Association analysis can then be performed.
 
-1. To alleviate the effects from outlier expression data and alleviate systematic inflation problem, we performed quantile normalization on gene expression data (see also [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/faq.html)). The normalization is on individual gene level, and gene expression quantity across all samples fit normal distribution while preserving the relative rankings. Run quantile_norm.R (under normalization folder):
-
-```bash 
-# input count file should be normalized by library-size (see Gene expression level quantification 2)
-Rscript quantile_norm.R -norm_count all_sample_normalizedbyDESeq2 -O all_sample_quantile_normalization
-``` 
-
-2. To alleviate computational pressure for association tests that run for each combination of SNP genotype and individual gene expression, we assigned genotype bins based on the overlap of genotype blocks among F3 isogenic populations (see also [Ranjan et. al](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5074602/)). 
+1. First, to alleviate computational pressure for association tests that run for each combination of SNP genotype and individual gene, we assigned genotype bins based on the overlap of genotype blocks among F3 isogenic populations (for logic please see also [Ranjan et. al](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5074602/)). The output of this step are the genotype bins (genetic markers) to be used directly for eQTL mapping.
 
 ```bash
-# run block2bin.R to assign genotypic bins based on overlapped blocks 
-# for this step, you also need to provide chromosome length information (chrlen.txt) and SNP position file (SNP_loc.txt)
+# run block2bin.R to assign genotype bins based on overlapped blocks across all F3 isogenic sibling families
+# for this step, you also need to provide chromosome length information (chrlen.txt) and the SNP position file (SNP_loc.txt)
 Rscript block2bin.R -genodir sample_genotype_block/ -chrLen chrlen.txt -SNP SNP_loc.txt
 ```
-All samples genotype files are stored under "sample_genotype_block" folder. 
+All samples genotype files should be stored under the "sample_genotype_block" folder. 
 
-3. Perform genotype-expression association analysis using [MatrixeQTL](https://github.com/andreyshabalin/MatrixEQTL). <br>
-  About how to prepare input files for MatrixeQTL, see its tutorial [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/runit.html).
+2. Perform genotype-expression association analysis using [MatrixeQTL](https://github.com/andreyshabalin/MatrixEQTL). <br>
+  For instructions on preparing input files for MatrixeQTL, see the respective tutorial [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/runit.html).
 
 ```bash 
 # command for using MatrixeQTL for association test (without taking gene/SNP location information)
-# both ANOVA and LINEAR models are used for the association analysis, and output files in *.anova.txt and *.linear.txt
+# both ANOVA and LINEAR models are used for the association analysis, and the output files are *.anova.txt and *.linear.txt (for our study, we only subsequently used the output of the linear model)
 Rscript eQTL_identify.R -genotype <genotype.txt> -expression <expression.txt> -O <output>
 ```
-You should decide the model for the best performance of your own data and sitation. 
 
-4. Significant associations can arise from linkage disequilibruim (LD). To alleviate its effect, we take the bin genotype data to reconstruct linkage groups using [R/qtl](https://rqtl.org/download/). <br>
+3. Significant associations can arise from linkage disequilibruim (LD). To alleviate its effect, we take the bin genotype data to reconstruct linkage groups using [R/qtl](https://rqtl.org/download/). <br>
 
-  For linkage group construction, see R script ```marker_association.R```
+  For linkage group construction, see R file ```marker_association.R``` that has the needed commandlines.
 
-5. Based on the linkage group information, we parsed significant associations for each bin and its target gene. The most significant bin of a given linkage group was chosen as the "causal" eQTL. 
+4. Based on the linkage group information, we then parsed significant associations for each bin and its target gene. The most significant bin for a given linkage group was chosen as the location for the given eQTL. 
 
 ```bash
-# use the developed script parse_eQTL.py (support multiple-core running, adjust core usage in "-n")
+# use the script parse_eQTL.py (support multiple-core running, adjust core usage in "-n")
 mpiexec -n 5 eQTL_parse.py -eQTL MatrixeQTL_output -assoc marker_association.txt -O parsed_eQTL
 ```
-This process memory consuming, make sure you have enough memory to support running in multiple cores. 
+Note that this process is memory consuming. 
 
 ## Gene copy number variation estimation 
 See folder "CNV" <br>
