@@ -85,14 +85,12 @@ def main():
     worker_tasks = comm.bcast(worker_tasks, root = 0) # broadcast work division
     ###
     outdf = open(output + "_temp" + str(rank) + ".txt", "w")
-    outdf.write("chromosome\tposition\talt1\talt2\talt1_count\talt2_count\tothers\n")
     var_df = pd.read_table(var, sep = "\t", header = 0)
+    var_cols = var_df.columns.tolist()
+    outdf.write("\t".join(var_cols) + "\tcount1\tcount2\tother\n")
     rank_df = var_df.loc[worker_tasks[rank]]
-    for row in rank_df.itertuples():
-        chr = row.chromosome
-        pos = row.position
-        alt1 = row.alt1
-        alt2 = row.alt2
+    for index,row in rank_df.iterrows():
+        chr, pos, alt1, alt2 = row[var_cols]
         alt1_count, alt2_count, other = genotype_call(args, chr, pos, alt1, alt2)
         ### for each variant site, write read count
         outdf.write(f"{chr}\t{pos}\t{alt1}\t{alt2}\t{alt1_count}\t{alt2_count}\t{other}\n")
