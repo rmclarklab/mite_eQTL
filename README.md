@@ -15,7 +15,7 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 
 - [DNA-seq for variants calling](#DNA-seq-for-variants-calling)
 - [Map RNA-seq against the reference genome](#Map-RNA-seq-against-the-reference-genome)
-- [Genotype call for eQTL mapping populations based on RNA-seq alignment](#Genotype-call-for-eQTL-mapping-populations-based-on-RNA-seq-alignment)
+- [Genotype calling for eQTL mapping populations based on RNA-seq alignment](#Genotype-calling-for-eQTL-mapping-populations-based-on-RNA-seq-alignment)
 - [Update GFF3 file for the reference genome](#Update-GFF3-file-for-the-reference-genome)
 - [Gene expression level quantification](#Gene-expression-level-quantification)
 - [Association analysis between genotype and gene expression](#Association-analysis-between-genotype-and-gene-expression)
@@ -178,26 +178,30 @@ Inputs:
 
 ```bash
 # htseq-count command line (adjust number of CPU "-n" based on sample BAMs number, per BAM per CPU)
-htseq-count -r pos -s reverse -t exon -i gene_id --nonunique none --with-header -n 3 -c <sample1-3>.tsv <sample1.bam> <sample2.bam> <sample3.bam> $GTF 
+htseq-count -r pos -s reverse -t exon -i gene_id --nonunique none --with-header -n 3 -c <all_sample>.tsv <sample1.bam> <sample2.bam> <sample3.bam> <GTF> 
 ```
-Notice that the new version htseq-count (v2.0) can process multiple BAM files in parallel.
+Note that the new htseq-count version (v2.0) can process multiple BAM files in parallel.
 
 2. From the raw read-count data obtained by running htseq-count (see above), performed library-size normalization using DESeq2 (function estimateSizeFactors). <br>
 
 ```bash 
 # merge htseq-count output of all samples into one file, -O for output name
-Rscript DESeq2_norm.R -count all_sample.txt -O all_sample_normalizedbyDESeq2
+Rscript DESeq_norm.R -count <all_sample>.txt -O <all_sample>_normalizedbyDESeq
 ```
+   
 3. Perform quantile normalization on the library-size normalized read data to alleviate the effects from outliers and alleviate any systematic inflation (see also [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/faq.html)). Briefly, the normalization is on individual gene level, with gene expression across all samples is fit to a normal distribution while preserving the relative rankings.
 
 ```bash
 # use the code quantile_norm.R 
-Rscript quantile_norm.R -norm_count all_sample_normalizedbyDESeq2.txt -O all_sample_quantile.txt
+Rscript quantile_norm.R -norm_count <all_sample>_normalizedbyDESeq.txt -O <all_sample>_quantile.txt
 ```
 
 ## Association analysis between genotype and gene expression for eQTL mapping
-See folder "eQTL" <br>
-  For each F3 isogenic sibling family, the genotype blocks and gene expression data are now available (see above). Association analysis can then be performed.
+See folder "eQTL". <br>
+Inputs: 
+   - genotype blocks for each F3 isogenic sibling family (from [Genotype calling for eQTL mapping populations based on RNA-seq alignment](#Genotype-calling-for-eQTL-mapping-populations-based-on-RNA-seq-alignment))
+   - gene expression data for each F3 isogenic sibling famly (from [Gene expression level quantification](#Gene-expression-level-quantification))
+   , the genotype blocks and gene expression data are now available (see above). Association analysis can then be performed.
 
 1. First, to alleviate computational pressure for association tests that run for each combination of SNP genotype and individual gene, we assigned genotype bins based on the overlap of genotype blocks among F3 isogenic populations (for logic please see also [Ranjan et. al](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5074602/)). The output of this step are the genotype bins (genetic markers) to be used directly for eQTL mapping.
 
