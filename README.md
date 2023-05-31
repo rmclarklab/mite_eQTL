@@ -84,56 +84,59 @@ bcftools index -t sorted.vcf.gz
 # select SNPs
 gatk SelectVariants -R <ref> -V input.vcf.gz -select-type-to-include SNP -O SNP.vcf.gz
 ```
-6. Filter out SNPs based on the following criteria (MQ > 40, QD > 2, SOR < 3 and GT field in inbred state)
+6. Filter out SNPs based on the following criteria (MQ > 40, QD > 2, SOR < 3, and different between the two **R** and **S** strains), and output a new vcf file with variants passed the critieria.
 ```bash
-vcf_pass.py -vcf sorted.vcf.gz -R <ref> -O filtered.vcf.gz
+vcf_filter_2sample.py -vcf SNP.vcf.gz -O filtered.snp.vcf.gz
 ```
 For Variants filtering, see [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants) also for hard-filtering. <br>
 
-7. Pick SNPs that distinguish the two **R** and **S** strains (one allele in one sample and the second in the other), and output to a tab-separated file
+7. To retrieve variants information from vcf file into a tab-separated file, which will be used for following eQTL analysis. 
+
 ```bash
-# Comparing filtered VCF files for ROS-IT and MR-VP, and pick genotype-calls different between them
-vcf_compare.py -vcf1 ROS-IT.filtered.vcf.gz -vcf2 MR-VP.filtered.vcf.gz -R <ref> -O variant_RS
+variant_retrieve.py -vcf filtered.snp.vcf.gz -O variant_RS
 ```
-Retain the tab-separated SNP information for further use (see below). 
+Use the output file named "variant_RS.allele.txt" for further analysis. 
 
 ## Map RNA-seq against the reference genome
 Align the Illumina RNA read data for the eQTL mapping population to the three-chromosome reference genome (that is, the same genome used for DNA-seq read alignment). <br>
 For RNA-seq read alignment we used the RNA-seq aligner [STAR](https://github.com/alexdobin/STAR) 
+
 1. Generate indices for the genome fasta file.
+
 ```bash
 # STAR index generation
 STAR --runMode genomeGenerate --runThreadN 30 --genomeDir STAR_index --genomeFastaFiles Tetranychus_urticae_2017.11.21.fasta --genomeSAindexNbases 12
 ```
 
 2. Map RNA-seq onto the reference genome using the index folder. 
+
 ```bash
 # STAR mapping, sort and index BAM alignment file
-STAR --genomeDir STAR_index --runThreadN 20 --readFilesIn r1.fastq.gz r2.fastq.gz --twopassMode Basic --sjdbOverhang 99 --outFileNamePrefix sample_name. --readFilesCommand zcat --alignIntronMax 30000 --outSAMtype BAM Unsorted && samtools sort sample_name.Aligned.out.bam -o sample_name_sorted.bam -@ 8 && samtools index sample_name_sorted.bam 
+STAR --genomeDir STAR_index --runThreadN 20 --readFilesIn <r1.fastq.gz> <r2.fastq.gz> --twopassMode Basic --sjdbOverhang 99 --outFileNamePrefix <sample_name>. --readFilesCommand zcat --alignIntronMax 30000 --outSAMtype BAM Unsorted && samtools sort <sample_name>.Aligned.out.bam -o <sample_name>_sorted.bam -@ 8 && samtools index <sample_name>_sorted.bam 
 ```
 
 ## Genotype calling for eQTL mapping populations based on RNA-seq alignment
-See folder "genotype" <br>
+See folder "genotype". <br>
 We developed a customized pipeline to genotype the F3 isogenic sibling families using the RNA-seq read alignments and SNP data obtained from the DNA-seq read alignments and variant calls for the **R** and **S** parents (F0 generation). 
 Inputs:
-  - BAM RNA-seq data file from each F3 isogenic family (the input must be coordinate sorted and have an index file (.BAI file));
+  - BAM RNA-seq data file from each F3 isogenic family (the input must be coordinate sorted and have a bai index file);
   - SNP information (tab-separated) for the two F0 strains (the fixed differences between strains, see final output of [DNA-seq for variants calling](#DNA-seq-for-variants-calling)).
 
-1. Count allele-specific reads at SNP sites for each sample separately
+1. Count allele-specific reads at SNP sites for each F3 BAM file
+
 ```bash
-# run genotype_allele.py to count allele-specifc reads on the SNP sites
+# run SNP_allele_count.py to count allele-specifc reads on the SNP sites
 # this is a multiple-core processing program, adjust core usage via "-n"
-mpiexec -n 10 SNP_allele_count.py -V variant_RS.txt -bam sample_name.bam -O sample_allele_count
-# to get genotype from allele-specific count, run: allele2genotype.py 
+mpiexec -n 10 SNP_allele_count.py -V variant_RS.allele.txt -bam <sample.bam> -O <sample>_allele_count
 ```
 
 After running for all samples, place all of them in the same folder (raw_count). <br>
 
 2. Call genotypic blocks based on allele-specific read counts at SNP sites.
 
-You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. For information about the chromosome lengths format, see [here](https://biopython.org/docs/1.75/api/Bio.SeqIO.html). See example input under the "data" folder.
+You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. See example input under the "data" folder.
 ```bash
-# run genotype_block.py to call genotype blocks for each F3 sample
+# run genotype_block.py to call genotype blocks for each F3 isogenic family
 genotype_block.py -chr chr.txt -chrLen chrlen.txt -C sample_allele_count.txt -O sample_genotype_block
 ```
 
