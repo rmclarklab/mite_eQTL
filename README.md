@@ -129,18 +129,21 @@ Inputs:
 # this is a multiple-core processing program, adjust core usage via "-n"
 mpiexec -n 10 SNP_allele_count.py -V variant_RS.allele.txt -bam <sample.bam> -O <sample>_allele_count
 ```
+To call genotype at SNP site, see script record in ```allele2genotype.py```. <br>
+After running for all F3 BAM files, place all of them in the same folder (raw_count). <br>
+The output genotype file for each file with name "<sample>_allele_count.geno.txt". <br>
 
-After running for all samples, place all of them in the same folder (raw_count). <br>
+2. Call genotype blocks for each F3 family based on allele-specific read counts at SNP sites.
 
-2. Call genotypic blocks based on allele-specific read counts at SNP sites.
+You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. See example input under the "data" folder (chrlen.txt).
 
-You need to set up the chromosomes of interested for genotype block assignment, and also provide chromosome length information in a tab-separated file. See example input under the "data" folder.
 ```bash
 # run genotype_block.py to call genotype blocks for each F3 isogenic family
-genotype_block.py -chr chr.txt -chrLen chrlen.txt -C sample_allele_count.txt -O sample_genotype_block
+genotype_block.py -chrLen chrlen.txt -count <sample>_allele_count.geno.txt -O <sample>_genotype_block
 ```
 
-3 (optional). Visulization of genotype blocks on chromosome level
+3 (optional) Visulization of genotype blocks on chromosome level
+
 ```bash
 Rscript block_vis.R -geno sample_genotype_block.txt
 ```
