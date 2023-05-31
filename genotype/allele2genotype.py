@@ -7,6 +7,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
+# folder with all allele-specific count at SNP sites
 new_snp = "/home/clarklab/Desktop/Tetranychus_urticae/eQTL/count/allele_specific/SNP_STAR/gatk4.2_new/"
 
 new_fs = sorted([f for f in os.listdir(new_snp) if f.endswith(".txt")])
@@ -30,15 +31,15 @@ for f in worker_tasks[rank]:
     pre = f.split(".txt")[0]
     new_df = pd.read_table(os.path.join(new_snp, f), sep = "\t", header = 0)
     total_var = len(new_df)
-    new_df["total_count"] = new_df['alt1_count'] + new_df['alt2_count'] + new_df['others']
-    new_df["total_allele"] = new_df['alt1_count'] + new_df['alt2_count']
+    new_df["total_count"] = new_df['count1'] + new_df['count2'] + new_df['other']
+    new_df["total_allele"] = new_df['count1'] + new_df['count2']
     ### informative SNP
-    count_df = new_df[((new_df["others"] <= 5) | (new_df["others"]/new_df["total_count"]*100 < 1)) & ((new_df["alt1_count"] >= 5) | (new_df["alt2_count"] >= 5))].copy()
+    count_df = new_df[((new_df["other"] <= 5) | (new_df["other"]/new_df["total_count"]*100 < 1)) & ((new_df["count1"] >= 5) | (new_df["count2"] >= 5))].copy()
     informative_var = len(count_df)
     prop = round(informative_var/total_var*100, 2)
     log_rank.write(f"{f}\t{total_var}\t{informative_var}\t{prop}\n")
     ### assign genotype
-    count_df["genotype"] = np.where((count_df['alt2_count'] < 8) & (count_df['alt2_count']/count_df['total_allele']*100 < 5), 0, 1)
+    count_df["genotype"] = np.where((count_df['count2'] < 8) & (count_df['count2']/count_df['total_allele']*100 < 5), 0, 1)
     count_df.to_csv(pre + ".geno.txt", sep = "\t", index = False)
 
 log_rank.close()
