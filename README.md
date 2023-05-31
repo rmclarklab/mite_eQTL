@@ -225,11 +225,11 @@ bin_genotype.py -genotype all_genotype_block.txt -bin genotype_bin.txt -O bin_ge
 Rscript eQTL_identify.R -genotype <bin_genotype.txt> -expression <gene_expression.txt> -O <MatrixeQTL_output>
 ```
 
-3. Significant associations can arise from linkage disequilibruim (LD). To alleviate its effect, we take the bin genotype data to reconstruct linkage groups using [R/qtl](https://rqtl.org/download/). <br>
+4. Significant associations can arise from linkage disequilibruim (LD). To alleviate its effect, we take the bin genotype data to reconstruct linkage groups using [R/qtl](https://rqtl.org/download/). <br>
 
   For linkage group construction, see R file ```marker_association.R``` that has the needed commandlines.
 
-4. Based on the linkage group information, we then parsed significant associations for each bin and its target gene. The most significant bin for a given linkage group was chosen as the location for the given eQTL. 
+5. Based on the linkage group information, we then parsed significant associations for each bin and its target gene. The most significant bin for a given linkage group was chosen as the location for the given eQTL. 
 
 ```bash
 # use the script parse_eQTL.py (support multiple-core running, adjust core usage in "-n")
