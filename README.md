@@ -18,7 +18,7 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 - [Genotype calling for eQTL mapping populations based on RNA-seq alignment](#Genotype-calling-for-eQTL-mapping-populations-based-on-RNA-seq-alignment)
 - [Update GFF3 file for the reference genome](#Update-GFF3-file-for-the-reference-genome)
 - [Gene expression level quantification](#Gene-expression-level-quantification)
-- [Association analysis between genotype and gene expression](#Association-analysis-between-genotype-and-gene-expression)
+- [Association analysis between genotype and gene expression for eQTL mapping](#Association-analysis-between-genotype-and-gene-expression-for-eQTL-mapping)
 - [Gene copy number variation estimation](#Gene-copy-number-variation-estimation)
 
 ## Programs used / Dependencies
