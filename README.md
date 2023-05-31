@@ -142,14 +142,11 @@ You need to set up the chromosomes of interested for genotype block assignment, 
 genotype_block.py -chrLen chrlen.txt -count <sample>_allele_count.geno.txt -O <sample>_genotype_block
 ```
 
-3 (optional) Visulization of genotype blocks on chromosome level
+3. (optional) Visulization of genotype blocks on chromosome level.
 
 ```bash
-Rscript block_vis.R -geno sample_genotype_block.txt
+Rscript block_vis.R -geno <sample>_genotype_block.txt -O <sample>
 ```
-
-  Example output (in PDF): <br>
-<img width="300" alt="Screen Shot 2022-05-01 at 3 15 45 PM" src="https://user-images.githubusercontent.com/63678158/166165078-eaeace45-abfc-48ca-9301-684e0f670db4.png">
 
 ## Update GFF3 file for the reference genome
 See folder "GFF_update" <br>
@@ -200,25 +197,32 @@ Rscript quantile_norm.R -norm_count <all_sample>_normalizedbyDESeq.txt -O <all_s
 See folder "eQTL". <br>
 Inputs: 
    - genotype blocks for each F3 isogenic sibling family (from [Genotype calling for eQTL mapping populations based on RNA-seq alignment](#Genotype-calling-for-eQTL-mapping-populations-based-on-RNA-seq-alignment))
-   - gene expression data for each F3 isogenic sibling famly (from [Gene expression level quantification](#Gene-expression-level-quantification))
-   , the genotype blocks and gene expression data are now available (see above). Association analysis can then be performed.
+   - normalized gene expression data for each F3 isogenic sibling famly (from [Gene expression level quantification](#Gene-expression-level-quantification))
 
+   Before performing the following analysis, combine genotype block information for all F3 isogenic families into a single file (See example input under the "data" folder (all_genotype_block.txt)).
+   
 1. First, to alleviate computational pressure for association tests that run for each combination of SNP genotype and individual gene, we assigned genotype bins based on the overlap of genotype blocks among F3 isogenic populations (for logic please see also [Ranjan et. al](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5074602/)). The output of this step are the genotype bins (genetic markers) to be used directly for eQTL mapping.
 
 ```bash
 # run block2bin.R to assign genotype bins based on overlapped blocks across all F3 isogenic sibling families
 # for this step, you also need to provide chromosome length information (chrlen.txt) and the SNP position file (SNP_loc.txt)
-Rscript block2bin.R -genodir sample_genotype_block/ -chrLen chrlen.txt -SNP SNP_loc.txt
+Rscript block2bin.R -genotype all_genotype_block.txt -chrLen chrlen.txt -out genotype_bin
 ```
-All samples genotype files should be stored under the "sample_genotype_block" folder. 
 
-2. Perform genotype-expression association analysis using [MatrixeQTL](https://github.com/andreyshabalin/MatrixEQTL). <br>
+2. report genotype at each genotype bin for each of the F3 isogenic sibling families
+
+```bash 
+# run script bin_genotype.py to retrieve genotype data at genotype bin interval 
+bin_genotype.py -genotype all_genotype_block.txt -bin genotype_bin.txt -O bin_genotype
+```
+   
+3. Perform genotype-expression association analysis using [MatrixeQTL](https://github.com/andreyshabalin/MatrixEQTL). <br>
   For instructions on preparing input files for MatrixeQTL, see the respective tutorial [here](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/runit.html).
 
 ```bash 
 # command for using MatrixeQTL for association test (without taking gene/SNP location information)
 # both ANOVA and LINEAR models are used for the association analysis, and the output files are *.anova.txt and *.linear.txt (for our study, we only subsequently used the output of the linear model)
-Rscript eQTL_identify.R -genotype <genotype.txt> -expression <expression.txt> -O <output>
+Rscript eQTL_identify.R -genotype <bin_genotype.txt> -expression <gene_expression.txt> -O <MatrixeQTL_output>
 ```
 
 3. Significant associations can arise from linkage disequilibruim (LD). To alleviate its effect, we take the bin genotype data to reconstruct linkage groups using [R/qtl](https://rqtl.org/download/). <br>
@@ -229,39 +233,37 @@ Rscript eQTL_identify.R -genotype <genotype.txt> -expression <expression.txt> -O
 
 ```bash
 # use the script parse_eQTL.py (support multiple-core running, adjust core usage in "-n")
-mpiexec -n 5 eQTL_parse.py -eQTL MatrixeQTL_output -assoc marker_association.txt -O parsed_eQTL
+mpiexec -n 5 eQTL_parse.py -eQTL <MatrixeQTL_output> -assoc marker_association.txt -O <parsed_eQTL>
 ```
-Note that this process is memory consuming. 
+
+   Note that this process is memory consuming. 
 
 ## Gene copy number variation estimation 
-See folder "CNV" <br>
+See folder "CNV". <br>
+Inputs:
+   - updated GTF file from [Update GFF3 file for the reference genome](#Update-GFF3-file-for-the-reference-genome);
+   - London reference genome in fasta format; 
+   - BAM DNA-seq alignment of **R** and **S** strains (see [DNA-seq for variants calling](#DNA-seq-for-variants-calling)).
 1. Count coverage depth on gene coding regions (default stepsize 1 bp). <br>
 ```bash
-python gene_coverage.py [ref] [gtf] [bam] -O [out] 
+# run gene_coverage.py to count depth on gene region, and output in a folder <out>
+python gene_coverage.py <reference.fasta> <GTF> <BAM> -O <out>
 ```
-required arguments for this script
-ref: reference genome in fasta file <br>
-gtf: gtf file for the reference genome <br>
-bam: bam of reads aligned to reference genome <br>
-out: output folder
-- A new "out" folder will be created (if not existing) and all output files will be written under the folder. <br>
-- File named "pos_depth.txt" (coverage at gene coding positions) will be generated under the \[out\] folder. <br>
+A <out> folder will be created (if not existing) and all output files will be written under the folder. <br>
+File named "pos_depth.txt" (coverage at gene coding positions) will be generated under the <out> folder. <br>
 
 2. Report the single-copy coverage depth for the BAM file.  <br>
 ```bash
-Rscript single_depth.R [out]/pos_depth.txt [cov_est] -O [out] 
+# give a initial estimation value for coverage calculation as <cov_est>
+# <out> folder should be the same as in last step
+Rscript single_depth.R <out>/pos_depth.txt <cov_est> -O <out> 
 ```
-Arguments from last step:
-cov_est: the estimated coverage for the BAM file <br>
-out: output folder (it should be the same as in "Step 1") <br>
-- File named "single_cov.txt" (single copy coverage) will be generated under the \[out\] folder <br>
-- File named "histogram.pdf" (coverage distribution) will be generated under the \[out\] folder <br>
+File named "single_cov.txt" (single copy coverage) will be generated under the <out> folder.  <br>
+File named "histogram.pdf" (coverage distribution) will be generated under the <out> folder.  <br>
 
 3. Estimate gene CNV based on gene coding region coverage depth <br>
 ```bash
-python gene_CNV.py [out]/pos_depth.txt [out]/single_cov.txt -O [out] 
+# <out> folder should be the same as in last step
+gene_CNV.py <out>/pos_depth.txt <out>/single_cov.txt -O <out> 
 ```
-Arguments from last step:
-out: output folder (it should be the same as in "Step 1" and "Step 2") <br>
-- File named "gene_cnv.txt" will be generated under the \[out\] folder. <br>
-
+File named "gene_cnv.txt" will be generated under the \[out\] folder. <br>
