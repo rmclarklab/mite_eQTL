@@ -101,7 +101,7 @@ def main():
     df = comm.gather(df, root = 0) # return list object
     if rank == 0:
         df = pd.concat(df, axis = 0)
-        df = df.sort_values(by = ["chromosome", "position"])
+        df = df.sort_values(by = var_cols[:2])
         df.to_csv(output + ".txt", sep = "\t", index = False)
         print("Write genotyping data successfully! ")
         endtime(start)
