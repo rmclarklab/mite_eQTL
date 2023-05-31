@@ -31,7 +31,7 @@ We used a pesticide susceptible strain ROS-ITi (diploid mother, ♀, **S**) and 
 - htseq-count v2.0.1 and upper
 - R v4.1.3 (packages: DESeq2 v1.34; MatrixEQTL v2.3; R/qtl v1.46) and upper
 
-[NOTE]To enable parallel processing, python model mpi4py need to be installed. 
+[NOTE] To enable parallel processing, python model mpi4py need to be installed. 
 
 ## DNA-seq for variants calling
 For variant calling see folder "VCF". <br> 
@@ -177,7 +177,7 @@ Inputs:
 # htseq-count command line (adjust number of CPU "-n" based on sample BAMs number, per BAM per CPU)
 htseq-count -r pos -s reverse -t exon -i gene_id --nonunique none --with-header -n 3 -c <all_sample>.tsv <sample1.bam> <sample2.bam> <sample3.bam> <GTF> 
 ```
-Note that the new htseq-count version (v2.0) can process multiple BAM files in parallel.
+[NOTE] htseq-count v2.0 can process multiple BAM files in parallel.
 
 2. From the raw read-count data obtained by running htseq-count (see above), performed library-size normalization using DESeq2 (function estimateSizeFactors). <br>
 
@@ -236,7 +236,7 @@ Rscript eQTL_identify.R -genotype <bin_genotype.txt> -expression <gene_expressio
 mpiexec -n 5 eQTL_parse.py -eQTL <MatrixeQTL_output> -assoc marker_association.txt -O <parsed_eQTL>
 ```
 
-   Note that this process is memory consuming. 
+[NOTE] This process is memory consuming. 
 
 ## Gene copy number variation estimation 
 See folder "CNV". <br>
