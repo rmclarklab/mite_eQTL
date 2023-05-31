@@ -117,7 +117,7 @@ STAR --genomeDir STAR_index --runThreadN 20 --readFilesIn <r1.fastq.gz> <r2.fast
 
 ## Genotype calling for eQTL mapping populations based on RNA-seq alignment
 See folder "genotype". <br>
-We developed a customized pipeline to genotype the F3 isogenic sibling families using the RNA-seq read alignments and SNP data obtained from the DNA-seq read alignments and variant calls for the **R** and **S** parents (F0 generation). 
+We developed a customized pipeline to genotype the F3 isogenic sibling families using the RNA-seq read alignments and SNP data obtained from the DNA-seq read alignments and variant calls for the **R** and **S** parents (F0 generation). <br>
 Inputs:
   - BAM RNA-seq data file from each F3 isogenic family (the input must be coordinate sorted and have a bai index file);
   - SNP information (tab-separated) for the two F0 strains (the fixed differences between strains, see final output of [DNA-seq for variants calling](#DNA-seq-for-variants-calling)).
@@ -169,12 +169,16 @@ tabix -p gff output.gff.gz
 ```
 
 ## Gene expression level quantification
-See folder "normalization" <br> 
+See folder "normalization". <br> 
+Inputs:
+   - BAM RNA-seq data file from each F3 isogenic family (the input must be coordinate sorted and have a bai index file);
+   - updated GTF file from [Update GFF3 file for the reference genome](#Update-GFF3-file-for-the-reference-genome)
+   
 1. Using the updated GTF, run htseq-count on the RNA-seq alignment BAM files for the eQTL mapping population and output the read counts per gene.
 
 ```bash
 # htseq-count command line (adjust number of CPU "-n" based on sample BAMs number, per BAM per CPU)
-htseq-count -r pos -s reverse -t exon -i gene_id --nonunique none --with-header -n 3 -c sample1-3.tsv sample1.bam sample2.bam sample3.bam $GTF 
+htseq-count -r pos -s reverse -t exon -i gene_id --nonunique none --with-header -n 3 -c <sample1-3>.tsv <sample1.bam> <sample2.bam> <sample3.bam> $GTF 
 ```
 Notice that the new version htseq-count (v2.0) can process multiple BAM files in parallel.
 
