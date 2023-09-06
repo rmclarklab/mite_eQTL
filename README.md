@@ -4,8 +4,7 @@ This is a repository for performing and analyzing an eQTL mapping experiment wit
 
 ## Authorship
 
-This site, and the respective pipeline documentation and code, has been assembled by Meiyuan Ji, a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports a manuscript under review, and will be linked to the resulting publication when it is published. The work is a collaboration with Thomas Van Leeuwen's laboratory at Ghent University. <br> <br>
-For questions regarding to the use of scripts and data analysis steps, contact <i>meiyuan.ji@utah.edu</i> or <i>clark@biology.utah.edu</i>. 
+This site, and the respective pipeline documentation and code, was assembled by Meiyuan Ji while a graduate student in Richard Michael Clark's laboratory at the University of Utah. This site supports an article that was published with title "[A nuclear receptor HR96-related gene underlies large <i>trans</i>-driven differences in detoxification gene expression in a generalist herbivore](https://www.nature.com/articles/s41467-023-40778-w)" (Nature Communications 2023 Aug 17;14(1):4990). The work is a collaboration with Thomas Van Leeuwen's laboratory at Ghent University. For questions regarding to the use of scripts and data analysis steps, contact <i>meiyuan.ji@utah.edu</i> or <i>clark@biology.utah.edu</i>. 
 
 ## Experimental design
    
